@@ -16,7 +16,7 @@ def get_client() -> Client:
         url = os.getenv("SUPABASE_URL", "")
         key = os.getenv("SUPABASE_SERVICE_KEY", "")
         if not url or not key:
-            raise RuntimeError("SUPABASE_URL e SUPABASE_SERVICE_KEY devem estar definidos em pipeline/.env")
+            raise RuntimeError("SUPABASE_URL e SUPABASE_SERVICE_KEY devem estar definidos em backend/pipeline/.env")
         _client = create_client(url, key)
     return _client
 

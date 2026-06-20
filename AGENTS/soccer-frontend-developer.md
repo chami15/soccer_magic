@@ -67,6 +67,7 @@ export default config
 ## Estrutura de arquivos
 
 ```
+frontend/
 app/
 ├── layout.tsx                    ← RootLayout: fontes, bottom nav, bg-bg-base
 ├── (main)/

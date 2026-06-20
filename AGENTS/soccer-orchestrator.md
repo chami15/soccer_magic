@@ -35,7 +35,7 @@ Coordenar o trabalho em equipe de todos os agentes especializados do projeto, ga
 ### FASE 2 — Pipeline Python
 1. Ativar `soccer-pipeline-engineer` → implementar pipeline completo
 2. Ativar `soccer-data-validator` → testar todos os 7 cenários da tabela §7.3 do PRDv2
-3. Ativar `soccer-qa-engineer` → escrever e executar testes em `pipeline/tests/test_window.py`
+3. Ativar `soccer-qa-engineer` → escrever e executar testes em `backend/pipeline/tests/test_window.py`
 4. Checkpoint: rodar pipeline com 3 seleções de teste, verificar dados no Supabase
 
 ### FASE 3 — Frontend

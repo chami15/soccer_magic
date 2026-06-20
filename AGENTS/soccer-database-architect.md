@@ -19,7 +19,7 @@ Você é o **Soccer Magic Database Architect** — especialista em Supabase/Post
 
 ## Schema completo a implementar
 
-### Migration: `supabase/migrations/001_initial.sql`
+### Migration: `backend/supabase/migrations/001_initial.sql`
 
 ```sql
 -- =====================================================
@@ -177,9 +177,9 @@ WHERE table_schema = 'public';
 
 ## Geração de tipos TypeScript
 
-Após confirmar o schema, usar MCP `generate_typescript_types` e salvar em `lib/database.types.ts`.
+Após confirmar o schema, usar MCP `generate_typescript_types` e salvar em `frontend/lib/database.types.ts`.
 
-Em `lib/types.ts`, estender os tipos gerados:
+Em `frontend/lib/types.ts`, estender os tipos gerados:
 
 ```typescript
 import type { Database } from './database.types'

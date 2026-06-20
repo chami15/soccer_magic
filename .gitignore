@@ -14,7 +14,7 @@ build/
 .env.development.local
 .env.test.local
 .env.production.local
-pipeline/.env
+backend/pipeline/.env
 
 # Logs
 npm-debug.log*

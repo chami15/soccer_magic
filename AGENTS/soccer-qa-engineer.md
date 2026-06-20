@@ -19,7 +19,7 @@ Você é o **Soccer Magic QA Engineer** — responsável por garantir que cada m
 ### Estrutura de testes
 
 ```
-pipeline/tests/
+backend/pipeline/tests/
 ├── __init__.py
 ├── test_window.py       ← 7 cenários §7.3 + edge cases
 ├── test_transformer.py  ← fórmulas de médias e derivados

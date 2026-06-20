@@ -20,7 +20,7 @@ Você é o **Soccer Magic Data Validator** — o guardião da integridade dos da
 Para cada cenário, verificar que o `build_window()` produz o resultado correto:
 
 ```python
-# pipeline/tests/test_window.py
+# backend/pipeline/tests/test_window.py
 
 def make_copa_match(days_ago: int) -> dict:
     """Helper: cria fixture simulado da Copa"""
