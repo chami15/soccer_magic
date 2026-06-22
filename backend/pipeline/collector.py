@@ -235,3 +235,13 @@ def get_match_statistics(client: httpx.Client, match_id: int) -> list[dict]:
 def get_match_incidents(client: httpx.Client, match_id: int) -> list[dict]:
     resp = _get(client, f"/event/{match_id}/incidents")
     return resp.get("incidents", [])
+
+
+def get_matches_for_date(client: httpx.Client, date: str, tournament_id: int = WC_TOURNAMENT_ID) -> list[dict]:
+    """Retorna os jogos do torneio agendados para uma data (YYYY-MM-DD)."""
+    resp = _get(client, f"/sport/football/scheduled-events/{date}")
+    events = resp.get("events", [])
+    return [
+        e for e in events
+        if e.get("tournament", {}).get("uniqueTournament", {}).get("id") == tournament_id
+    ]
