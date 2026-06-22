@@ -245,3 +245,18 @@ def get_team_next_match(client: httpx.Client, team_id: int) -> dict | None:
         return None
     events.sort(key=lambda e: e.get("startTimestamp", 0))
     return events[0]
+
+
+def get_team_goal_distributions(
+    client: httpx.Client, team_id: int, tournament_id: int = WC_TOURNAMENT_ID, season_id: int = WC_2026_SEASON_ID
+) -> list[dict]:
+    """Retorna a distribuição de gols marcados/sofridos por intervalo de 15min (home/away/overall)."""
+    resp = _get(client, f"/team/{team_id}/unique-tournament/{tournament_id}/season/{season_id}/goal-distributions")
+    return resp.get("goalDistributions", [])
+
+
+def get_h2h_events(client: httpx.Client, custom_id: str) -> list[dict]:
+    """Retorna o histórico de confrontos diretos entre os dois times de uma partida.
+    Usa o customId do evento (ex: 'VTbsYUb'), não o match_id numérico."""
+    resp = _get(client, f"/event/{custom_id}/h2h/events")
+    return resp.get("events", [])
