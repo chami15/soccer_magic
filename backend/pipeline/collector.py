@@ -4,6 +4,7 @@ Estratégia: httpx tenta primeiro; Playwright como fallback navegando na página
 e interceptando as respostas que o próprio site faz (Cloudflare não bloqueia JS nativo).
 NOTA: www.sofascore.com/api/v1 funciona; api.sofascore.com retorna 403.
 """
+import atexit
 import logging
 import time
 
@@ -104,6 +105,9 @@ def _close_playwright_session():
     _playwright_page = None
     _playwright_browser = None
     _playwright_instance = None
+
+
+atexit.register(_close_playwright_session)
 
 
 _FETCH_JS = """
