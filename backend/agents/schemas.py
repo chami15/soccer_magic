@@ -17,5 +17,7 @@ class TeamDailyReport(BaseModel):
     team_id: int
     team_name: str
     matches_collected: list[MatchCollected] = []
+    goal_distributions: list[dict] = []
+    h2h_events: list[dict] = []
     qualitative_notes: str | None = None
     collection_errors: list[str] = []

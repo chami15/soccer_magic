@@ -31,6 +31,19 @@ def get_match_incidents(agent: Agent, match_id: int) -> list[dict]:
     return collector.get_match_incidents(client, match_id)
 
 
+def get_team_goal_distributions(agent: Agent, team_id: int) -> list[dict]:
+    """Retorna a distribuição de gols por intervalo de 15min da temporada (determinístico, via Sofascore)."""
+    client = agent.dependencies["sofascore_client"]
+    return collector.get_team_goal_distributions(client, team_id)
+
+
+def get_h2h_events(agent: Agent, custom_id: str) -> list[dict]:
+    """Retorna o histórico de confrontos diretos de uma partida (determinístico, via Sofascore).
+    custom_id é o identificador curto do evento (ex: 'VTbsYUb'), não o match_id numérico."""
+    client = agent.dependencies["sofascore_client"]
+    return collector.get_h2h_events(client, custom_id)
+
+
 def enrich_context(team_name: str, date: str) -> str:
     """Busca contexto qualitativo (lesões, notícias) via Tavily. Nunca retorna números a inserir no banco."""
     result = _tavily.web_search_using_tavily(f"{team_name} seleção notícias lesões {date}", max_results=3)

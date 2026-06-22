@@ -247,6 +247,22 @@ def get_team_next_match(client: httpx.Client, team_id: int) -> dict | None:
     return events[0]
 
 
+def get_tournament_next_events(
+    client: httpx.Client, tournament_id: int = WC_TOURNAMENT_ID, season_id: int = WC_2026_SEASON_ID
+) -> list[dict]:
+    """Retorna todos os próximos jogos do torneio numa única chamada (substitui loop por time)."""
+    resp = _get(client, f"/unique-tournament/{tournament_id}/season/{season_id}/events/next/0")
+    return resp.get("events", [])
+
+
+def get_tournament_last_events(
+    client: httpx.Client, tournament_id: int = WC_TOURNAMENT_ID, season_id: int = WC_2026_SEASON_ID
+) -> list[dict]:
+    """Retorna os últimos jogos encerrados do torneio numa única chamada."""
+    resp = _get(client, f"/unique-tournament/{tournament_id}/season/{season_id}/events/last/0")
+    return resp.get("events", [])
+
+
 def get_team_goal_distributions(
     client: httpx.Client, team_id: int, tournament_id: int = WC_TOURNAMENT_ID, season_id: int = WC_2026_SEASON_ID
 ) -> list[dict]:

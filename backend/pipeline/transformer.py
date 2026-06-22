@@ -84,6 +84,38 @@ def _count_goals_in_period(incidents: list, team_id: int, period: int) -> int:
     )
 
 
+def summarize_goal_distribution(goal_distributions: list[dict]) -> dict | None:
+    """Resume o /goal-distributions (agregado da temporada inteira pelo Sofascore — escopo
+    diferente da janela deslizante de avg_goals_1h/2h, que é por jogo dentro da janela)."""
+    overall = next((d for d in goal_distributions if d.get("type") == "overall"), None)
+    if not overall:
+        return None
+    return {
+        "season_matches": overall.get("matches"),
+        "season_goals_scored": overall.get("scoredGoals"),
+        "season_goals_conceded": overall.get("concededGoals"),
+        "periods": overall.get("periods", []),
+    }
+
+
+def summarize_h2h(h2h_events: list[dict], team_id: int) -> dict | None:
+    """Resume o histórico de confrontos diretos /h2h/events para o team_id informado."""
+    if not h2h_events:
+        return None
+    wins = draws = losses = 0
+    for ev in h2h_events:
+        if ev.get("status", {}).get("type") != "finished":
+            continue
+        result = get_result(ev, team_id) if _is_home(ev, team_id) or ev["awayTeam"]["id"] == team_id else None
+        if result == "V":
+            wins += 1
+        elif result == "E":
+            draws += 1
+        elif result == "D":
+            losses += 1
+    return {"matches": len(h2h_events), "wins": wins, "draws": draws, "losses": losses}
+
+
 def transform(
     team_id: int,
     window: WindowResult,

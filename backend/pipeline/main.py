@@ -14,7 +14,7 @@ import collector
 import persistence
 from collector import WC_TOURNAMENT_ID, get_wc_2026_season_id, get_wc_teams
 from collector import get_team_recent_matches, get_match_statistics, get_match_incidents
-from collector import get_team_next_match
+from collector import get_tournament_next_events
 from transformer import transform
 from window import build_window
 
@@ -57,21 +57,22 @@ def _build_match_log_row(match: dict, team_id: int, in_window: bool) -> dict:
     }
 
 
-def filter_teams_playing_on(client: httpx.Client, teams: list[dict], target_date: str) -> list[dict]:
-    """Filtra as seleções cujo próximo jogo agendado cai em target_date (YYYY-MM-DD)."""
-    playing = []
-    for team in teams:
-        try:
-            match = get_team_next_match(client, team["id"])
-        except Exception as exc:
-            logger.warning("Erro ao buscar próximo jogo de %s: %s", team["name"], exc)
-            continue
-        if not match:
-            continue
-        match_date = datetime.fromtimestamp(match["startTimestamp"], tz=timezone.utc).date().isoformat()
-        if match_date == target_date:
-            playing.append(team)
-    return playing
+def filter_teams_playing_on(client: httpx.Client, teams: list[dict], target_date: str) -> tuple[list[dict], list[dict]]:
+    """Filtra as seleções com jogo agendado em target_date (YYYY-MM-DD).
+    Uma única chamada ao torneio em vez de uma chamada por time."""
+    next_events = get_tournament_next_events(client)
+    matches_on_date = [
+        e for e in next_events
+        if datetime.fromtimestamp(e["startTimestamp"], tz=timezone.utc).date().isoformat() == target_date
+    ]
+
+    team_ids_playing = set()
+    for match in matches_on_date:
+        team_ids_playing.add(match["homeTeam"]["id"])
+        team_ids_playing.add(match["awayTeam"]["id"])
+
+    playing = [t for t in teams if t["id"] in team_ids_playing]
+    return playing, matches_on_date
 
 
 def process_team(client: httpx.Client, team: dict, errors: list) -> tuple[bool, bool]:
@@ -179,7 +180,7 @@ def run(limit: int | None = None, season: int = 2026, only_playing_tomorrow: boo
 
         if only_playing_tomorrow:
             tomorrow = (date.today() + timedelta(days=1)).isoformat()
-            teams = filter_teams_playing_on(client, teams, tomorrow)
+            teams, _matches_tomorrow = filter_teams_playing_on(client, teams, tomorrow)
             logger.info("Seleções com jogo em %s: %d", tomorrow, len(teams))
 
         if limit:
