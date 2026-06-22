@@ -6,7 +6,7 @@ Fluxo: season discovery → teams → recent matches → window → stats/incide
 import argparse
 import logging
 import sys
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 import httpx
 
@@ -14,6 +14,7 @@ import collector
 import persistence
 from collector import WC_TOURNAMENT_ID, get_wc_2026_season_id, get_wc_teams
 from collector import get_team_recent_matches, get_match_statistics, get_match_incidents
+from collector import get_team_next_match
 from transformer import transform
 from window import build_window
 
@@ -54,6 +55,23 @@ def _build_match_log_row(match: dict, team_id: int, in_window: bool) -> dict:
         "is_in_window": in_window,
         "stats_raw": None,
     }
+
+
+def filter_teams_playing_on(client: httpx.Client, teams: list[dict], target_date: str) -> list[dict]:
+    """Filtra as seleções cujo próximo jogo agendado cai em target_date (YYYY-MM-DD)."""
+    playing = []
+    for team in teams:
+        try:
+            match = get_team_next_match(client, team["id"])
+        except Exception as exc:
+            logger.warning("Erro ao buscar próximo jogo de %s: %s", team["name"], exc)
+            continue
+        if not match:
+            continue
+        match_date = datetime.fromtimestamp(match["startTimestamp"], tz=timezone.utc).date().isoformat()
+        if match_date == target_date:
+            playing.append(team)
+    return playing
 
 
 def process_team(client: httpx.Client, team: dict, errors: list) -> tuple[bool, bool]:
@@ -145,7 +163,7 @@ def process_team(client: httpx.Client, team: dict, errors: list) -> tuple[bool, 
     return True, window_changed
 
 
-def run(limit: int | None = None, season: int = 2026):
+def run(limit: int | None = None, season: int = 2026, only_playing_tomorrow: bool = True):
     started_at = datetime.now(timezone.utc)
     logger.info("=== Soccer Magic Pipeline v2 iniciado em %s (season=%s) ===", started_at.isoformat(), season)
 
@@ -158,6 +176,12 @@ def run(limit: int | None = None, season: int = 2026):
             return
 
         teams = get_wc_teams(client, season_id)
+
+        if only_playing_tomorrow:
+            tomorrow = (date.today() + timedelta(days=1)).isoformat()
+            teams = filter_teams_playing_on(client, teams, tomorrow)
+            logger.info("Seleções com jogo em %s: %d", tomorrow, len(teams))
+
         if limit:
             teams = teams[:limit]
         logger.info("Seleções a processar: %d", len(teams))
@@ -204,5 +228,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Soccer Magic Pipeline v2 — Sofascore")
     parser.add_argument("--limit", type=int, default=None, help="Limitar número de seleções (teste)")
     parser.add_argument("--season", type=int, default=2026, help="Ano da season (padrão: 2026)")
+    parser.add_argument("--all-teams", action="store_true", help="Processar as 48 seleções, ignorando o filtro de jogo de amanhã")
     args = parser.parse_args()
-    run(limit=args.limit, season=args.season)
+    run(limit=args.limit, season=args.season, only_playing_tomorrow=not args.all_teams)

@@ -237,11 +237,11 @@ def get_match_incidents(client: httpx.Client, match_id: int) -> list[dict]:
     return resp.get("incidents", [])
 
 
-def get_matches_for_date(client: httpx.Client, date: str, tournament_id: int = WC_TOURNAMENT_ID) -> list[dict]:
-    """Retorna os jogos do torneio agendados para uma data (YYYY-MM-DD)."""
-    resp = _get(client, f"/sport/football/scheduled-events/{date}")
+def get_team_next_match(client: httpx.Client, team_id: int) -> dict | None:
+    """Retorna o próximo jogo agendado de um time (espelho de get_team_recent_matches)."""
+    resp = _get(client, f"/team/{team_id}/events/next/0")
     events = resp.get("events", [])
-    return [
-        e for e in events
-        if e.get("tournament", {}).get("uniqueTournament", {}).get("id") == tournament_id
-    ]
+    if not events:
+        return None
+    events.sort(key=lambda e: e.get("startTimestamp", 0))
+    return events[0]
