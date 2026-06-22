@@ -169,7 +169,7 @@ def _get_via_playwright(path: str) -> dict:
         parts = path.strip("/").split("/")
         if len(parts) >= 2:
             custom_id = parts[1]
-            event_page = f"https://www.sofascore.com/event/{custom_id}"
+            event_page = f"https://www.sofascore.com/football/match/x/{custom_id}"
             logger.info("Navegando na pagina do evento: %s", event_page)
             try:
                 _playwright_page.goto(event_page, wait_until="domcontentloaded", timeout=25000)
