@@ -146,6 +146,31 @@ def _get_via_playwright(path: str) -> dict:
         _playwright_cache[path] = data
         return data
 
+    # 3z. goal-distributions é carregado na página de uma PARTIDA do time (seção de
+    # comparação/prévia), não na página de perfil do time — confirmado via DevTools
+    # (referer da chamada real era a página de um jogo do Brasil, não /team/4748).
+    if "goal-distributions" in path:
+        parts = path.strip("/").split("/")
+        if len(parts) >= 2:
+            team_id = parts[1]
+            next_resp = _get_via_playwright(f"/team/{team_id}/events/next/0")
+            events = next_resp.get("events", [])
+            custom_id = events[0].get("customId") if events else None
+            if custom_id:
+                match_page = f"https://www.sofascore.com/football/match/x/{custom_id}"
+                logger.info("Navegando na pagina da partida (goal-distributions): %s", match_page)
+                try:
+                    _playwright_page.goto(match_page, wait_until="domcontentloaded", timeout=25000)
+                    _playwright_page.wait_for_timeout(6000)
+                except Exception as nav_err:
+                    logger.warning("Navegacao timeout/erro (%s) — continuando com cache", nav_err)
+                if path in _playwright_cache:
+                    return _playwright_cache[path]
+                data = _playwright_page.evaluate(_FETCH_JS, url)
+                if data and "_error" not in data:
+                    _playwright_cache[path] = data
+                    return data
+
     # 3. Para endpoints de time (/team/{id}/...), navegar na página do time
     if "/team/" in path:
         parts = path.strip("/").split("/")
