@@ -173,13 +173,14 @@ def process_team(client: httpx.Client, team: dict, errors: list) -> tuple[bool, 
 
     for match in window_result.window:
         mid = match["id"]
+        custom_id = match.get("customId")
         try:
-            match_stats[mid] = get_match_statistics(client, mid)
+            match_stats[mid] = get_match_statistics(client, mid, custom_id=custom_id)
         except Exception as exc:
             logger.warning("Stats não disponíveis para match %s: %s", mid, exc)
             match_stats[mid] = []
         try:
-            match_incidents[mid] = get_match_incidents(client, mid)
+            match_incidents[mid] = get_match_incidents(client, mid, custom_id=custom_id)
         except Exception as exc:
             logger.warning("Incidentes não disponíveis para match %s: %s", mid, exc)
             match_incidents[mid] = []

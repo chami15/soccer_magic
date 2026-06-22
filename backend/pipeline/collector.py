@@ -126,8 +126,13 @@ async (url) => {
 """
 
 
-def _get_via_playwright(path: str) -> dict:
-    """Recupera endpoint via Playwright: cache primeiro, depois navega na página de time/evento."""
+def _get_via_playwright(path: str, custom_id: str | None = None) -> dict:
+    """Recupera endpoint via Playwright: cache primeiro, depois navega na página de time/evento.
+
+    custom_id: customId Sofascore (ex: 'pUbsYUb') da partida, usado para navegação quando
+    o path contém o match_id NUMÉRICO (ex: /event/{id}/statistics) — a navegação de página
+    exige o customId alfanumérico, o id numérico não roteia corretamente.
+    """
     global _playwright_page
 
     # 1. Verificar cache (populado pela navegação na página do torneio)
@@ -196,14 +201,17 @@ def _get_via_playwright(path: str) -> dict:
                 _playwright_cache[path] = data
                 return data
 
-    # 3b. Para endpoints de evento (/event/{customId}/...), navegar na página da partida.
-    # Sofascore redireciona "/football/match/{slug}/{customId}" (slug é ignorado no
-    # roteamento) e dispara as mesmas chamadas de API que um usuário real geraria.
+    # 3b. Para endpoints de evento (/event/{customId ou id numérico}/...), navegar na
+    # página da partida. Sofascore redireciona "/football/match/{slug}/{customId}" (slug
+    # é ignorado no roteamento) e dispara as mesmas chamadas de API que um usuário real
+    # geraria — mas a navegação EXIGE o customId alfanumérico, não o match_id numérico
+    # (ex: /event/15186856/statistics usa id numérico na API, mas a navegação para
+    # /football/match/x/15186856 não roteia — precisa do customId, ex: 'pUbsYUb').
     if "/event/" in path:
         parts = path.strip("/").split("/")
         if len(parts) >= 2:
-            custom_id = parts[1]
-            event_page = f"https://www.sofascore.com/football/match/x/{custom_id}"
+            nav_custom_id = custom_id or parts[1]
+            event_page = f"https://www.sofascore.com/football/match/x/{nav_custom_id}"
             logger.info("Navegando na pagina do evento: %s", event_page)
             try:
                 _playwright_page.goto(event_page, wait_until="domcontentloaded", timeout=25000)
@@ -235,8 +243,12 @@ def _get_via_playwright(path: str) -> dict:
     return {}
 
 
-def _get(client: httpx.Client, path: str, retries: int = 3) -> dict:
-    """GET com rate limiting, retry e fallback Playwright."""
+def _get(client: httpx.Client, path: str, retries: int = 3, custom_id: str | None = None) -> dict:
+    """GET com rate limiting, retry e fallback Playwright.
+
+    custom_id: customId Sofascore da partida, repassado ao fallback Playwright para
+    navegação quando o path usa o match_id numérico (ex: /event/{id}/statistics).
+    """
     url = f"{BASE_URL}{path}"
     for attempt in range(retries):
         try:
@@ -247,7 +259,7 @@ def _get(client: httpx.Client, path: str, retries: int = 3) -> dict:
         except httpx.HTTPStatusError as exc:
             if exc.response.status_code == 403 and attempt == retries - 1:
                 logger.warning("403 após %d tentativas — usando Playwright para %s", retries, path)
-                return _get_via_playwright(path)
+                return _get_via_playwright(path, custom_id=custom_id)
             wait = 2 ** (attempt + 1)
             logger.warning("Tentativa %d falhou (%s): aguardando %ds", attempt + 1, exc, wait)
             time.sleep(wait)
@@ -296,13 +308,13 @@ def get_team_recent_matches(client: httpx.Client, team_id: int, count: int = 10)
     return finished[:count]
 
 
-def get_match_statistics(client: httpx.Client, match_id: int) -> list[dict]:
-    resp = _get(client, f"/event/{match_id}/statistics")
+def get_match_statistics(client: httpx.Client, match_id: int, custom_id: str | None = None) -> list[dict]:
+    resp = _get(client, f"/event/{match_id}/statistics", custom_id=custom_id)
     return resp.get("statistics", [])
 
 
-def get_match_incidents(client: httpx.Client, match_id: int) -> list[dict]:
-    resp = _get(client, f"/event/{match_id}/incidents")
+def get_match_incidents(client: httpx.Client, match_id: int, custom_id: str | None = None) -> list[dict]:
+    resp = _get(client, f"/event/{match_id}/incidents", custom_id=custom_id)
     return resp.get("incidents", [])
 
 
