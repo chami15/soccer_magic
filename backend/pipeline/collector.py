@@ -208,7 +208,20 @@ def _get_via_playwright(path: str) -> dict:
                 logger.warning("Navegacao timeout/erro (%s) — continuando com cache", nav_err)
             if path in _playwright_cache:
                 return _playwright_cache[path]
-            # 3c. Sessão "aquecida" pela navegação — tentar o fetch JS novamente
+
+            # 3c. h2h/events é carregado lazy, só quando a aba "H2H" é aberta na partida —
+            # a navegação simples não dispara esse XHR (confirmado via DevTools real:
+            # o endpoint só aparece no Network depois do clique na aba H2H).
+            if "h2h" in path:
+                try:
+                    _playwright_page.get_by_text("H2H", exact=True).first.click(timeout=8000)
+                    _playwright_page.wait_for_timeout(5000)
+                except Exception as click_err:
+                    logger.warning("Nao conseguiu clicar na aba H2H (%s)", click_err)
+                if path in _playwright_cache:
+                    return _playwright_cache[path]
+
+            # 3d. Sessão "aquecida" pela navegação — tentar o fetch JS novamente
             data = _playwright_page.evaluate(_FETCH_JS, url)
             if data and "_error" not in data:
                 _playwright_cache[path] = data
