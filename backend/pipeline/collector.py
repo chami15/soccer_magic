@@ -162,6 +162,23 @@ def _get_via_playwright(path: str) -> dict:
             if path in _playwright_cache:
                 return _playwright_cache[path]
 
+    # 3b. Para endpoints de evento (/event/{customId}/...), navegar na página da partida.
+    # Sofascore redireciona "/event/{customId}" para a URL completa da partida e dispara
+    # as mesmas chamadas de API que um usuário real geraria (incluindo h2h/events).
+    if "/event/" in path:
+        parts = path.strip("/").split("/")
+        if len(parts) >= 2:
+            custom_id = parts[1]
+            event_page = f"https://www.sofascore.com/event/{custom_id}"
+            logger.info("Navegando na pagina do evento: %s", event_page)
+            try:
+                _playwright_page.goto(event_page, wait_until="domcontentloaded", timeout=25000)
+                _playwright_page.wait_for_timeout(5000)
+            except Exception as nav_err:
+                logger.warning("Navegacao timeout/erro (%s) — continuando com cache", nav_err)
+            if path in _playwright_cache:
+                return _playwright_cache[path]
+
     logger.warning("Playwright não conseguiu obter: %s (data=%s)", path, data)
     return {}
 
