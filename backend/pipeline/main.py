@@ -14,7 +14,7 @@ import collector
 import persistence
 from collector import WC_TOURNAMENT_ID, get_wc_2026_season_id, get_wc_teams
 from collector import get_team_recent_matches, get_match_statistics, get_match_incidents
-from collector import get_tournament_next_events
+from collector import get_tournament_next_events, get_tournament_last_events
 from transformer import transform
 from window import build_window
 
@@ -55,6 +55,34 @@ def _build_match_log_row(match: dict, team_id: int, in_window: bool) -> dict:
         "is_in_window": in_window,
         "stats_raw": None,
     }
+
+
+def _build_schedule_row(match: dict) -> dict:
+    tournament = match.get("tournament", {})
+    return {
+        "match_id": match["id"],
+        "custom_id": match.get("customId"),
+        "home_team_id": match["homeTeam"]["id"],
+        "away_team_id": match["awayTeam"]["id"],
+        "home_team_name": match["homeTeam"].get("name", ""),
+        "away_team_name": match["awayTeam"].get("name", ""),
+        "group_name": tournament.get("groupName"),
+        "round": match.get("roundInfo", {}).get("round"),
+        "match_date": datetime.fromtimestamp(match["startTimestamp"], tz=timezone.utc).date().isoformat(),
+        "start_timestamp": match["startTimestamp"],
+        "status_type": match.get("status", {}).get("type"),
+        "venue_city": match.get("venue", {}).get("city", {}).get("name"),
+    }
+
+
+def save_tournament_schedule(client: httpx.Client) -> None:
+    """Salva o calendário completo (próximos + últimos jogos do torneio) para filtros no frontend."""
+    events = get_tournament_next_events(client) + get_tournament_last_events(client)
+    rows = [_build_schedule_row(e) for e in events]
+    try:
+        persistence.save_matches_schedule(rows)
+    except Exception as exc:
+        logger.error("Erro ao salvar matches_schedule: %s", exc)
 
 
 def filter_teams_playing_on(client: httpx.Client, teams: list[dict], target_date: str) -> tuple[list[dict], list[dict]]:
@@ -177,6 +205,7 @@ def run(limit: int | None = None, season: int = 2026, only_playing_tomorrow: boo
             return
 
         teams = get_wc_teams(client, season_id)
+        save_tournament_schedule(client)
 
         if only_playing_tomorrow:
             tomorrow = (date.today() + timedelta(days=1)).isoformat()

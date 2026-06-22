@@ -68,6 +68,69 @@ export type Database = {
           },
         ]
       }
+      matches_schedule: {
+        Row: {
+          away_team_id: number | null
+          away_team_name: string | null
+          custom_id: string | null
+          group_name: string | null
+          home_team_id: number | null
+          home_team_name: string | null
+          match_date: string
+          match_id: number
+          round: number | null
+          start_timestamp: number
+          status_type: string | null
+          updated_at: string | null
+          venue_city: string | null
+        }
+        Insert: {
+          away_team_id?: number | null
+          away_team_name?: string | null
+          custom_id?: string | null
+          group_name?: string | null
+          home_team_id?: number | null
+          home_team_name?: string | null
+          match_date: string
+          match_id: number
+          round?: number | null
+          start_timestamp: number
+          status_type?: string | null
+          updated_at?: string | null
+          venue_city?: string | null
+        }
+        Update: {
+          away_team_id?: number | null
+          away_team_name?: string | null
+          custom_id?: string | null
+          group_name?: string | null
+          home_team_id?: number | null
+          home_team_name?: string | null
+          match_date?: string
+          match_id?: number
+          round?: number | null
+          start_timestamp?: number
+          status_type?: string | null
+          updated_at?: string | null
+          venue_city?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matches_schedule_home_team_id_fkey"
+            columns: ["home_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_schedule_away_team_id_fkey"
+            columns: ["away_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pipeline_runs: {
         Row: {
           error_log: Json | null

@@ -79,18 +79,40 @@ CREATE TABLE IF NOT EXISTS pipeline_runs (
                      CHECK (triggered_by IN ('manual', 'cron'))
 );
 
+-- Calendário do torneio: snapshot do /events/next/0 e /events/last/0 (uma chamada
+-- cobre todas as 48 seleções de uma vez, vide collector.get_tournament_next_events).
+CREATE TABLE IF NOT EXISTS matches_schedule (
+  match_id        INTEGER PRIMARY KEY,    -- ID do evento no Sofascore
+  custom_id       TEXT,                   -- usado em /event/{customId}/h2h/events
+  home_team_id    INTEGER REFERENCES teams(id),
+  away_team_id    INTEGER REFERENCES teams(id),
+  home_team_name  TEXT,
+  away_team_name  TEXT,
+  group_name      TEXT,                   -- ex: 'Group I'
+  round           INTEGER,
+  match_date      DATE NOT NULL,          -- data do jogo (UTC), usada no filtro do frontend
+  start_timestamp BIGINT NOT NULL,
+  status_type     TEXT,                   -- 'notstarted' | 'finished' | 'inprogress'
+  venue_city      TEXT,
+  updated_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
 CREATE INDEX IF NOT EXISTS idx_match_log_team_id      ON match_log(team_id);
 CREATE INDEX IF NOT EXISTS idx_match_log_is_in_window ON match_log(is_in_window) WHERE is_in_window = TRUE;
 CREATE INDEX IF NOT EXISTS idx_teams_group_name        ON teams(group_name);
 CREATE INDEX IF NOT EXISTS idx_pipeline_runs_started   ON pipeline_runs(started_at DESC);
+CREATE INDEX IF NOT EXISTS idx_matches_schedule_date    ON matches_schedule(match_date);
+CREATE INDEX IF NOT EXISTS idx_matches_schedule_group   ON matches_schedule(group_name);
 
-ALTER TABLE teams          ENABLE ROW LEVEL SECURITY;
-ALTER TABLE team_stats     ENABLE ROW LEVEL SECURITY;
-ALTER TABLE match_log      ENABLE ROW LEVEL SECURITY;
-ALTER TABLE pipeline_runs  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE teams             ENABLE ROW LEVEL SECURITY;
+ALTER TABLE team_stats        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE match_log         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE pipeline_runs     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE matches_schedule  ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "public_read_teams"         ON teams         FOR SELECT USING (true);
-CREATE POLICY "public_read_team_stats"    ON team_stats    FOR SELECT USING (true);
-CREATE POLICY "public_read_match_log"     ON match_log     FOR SELECT USING (true);
-CREATE POLICY "public_read_pipeline_runs" ON pipeline_runs FOR SELECT USING (true);
+CREATE POLICY "public_read_teams"            ON teams            FOR SELECT USING (true);
+CREATE POLICY "public_read_team_stats"       ON team_stats       FOR SELECT USING (true);
+CREATE POLICY "public_read_match_log"        ON match_log        FOR SELECT USING (true);
+CREATE POLICY "public_read_pipeline_runs"    ON pipeline_runs    FOR SELECT USING (true);
+CREATE POLICY "public_read_matches_schedule" ON matches_schedule FOR SELECT USING (true);
 -- Escrita: apenas via service_role key (pipeline Python), que bypassa RLS

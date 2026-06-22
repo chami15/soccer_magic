@@ -53,6 +53,13 @@ def get_current_window(team_id: int) -> list[int] | None:
     return None
 
 
+def save_matches_schedule(rows: list[dict]) -> None:
+    if not rows:
+        return
+    for row in rows:
+        get_client().table("matches_schedule").upsert(row, on_conflict="match_id").execute()
+
+
 def save_pipeline_run(run: dict) -> None:
     get_client().table("pipeline_runs").insert(run).execute()
     logger.info("Pipeline run salvo: %s", run)
