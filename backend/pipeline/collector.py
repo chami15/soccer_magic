@@ -106,8 +106,24 @@ def _close_playwright_session():
     _playwright_instance = None
 
 
+_FETCH_JS = """
+async (url) => {
+    try {
+        const resp = await fetch(url, {
+            credentials: 'include',
+            headers: { 'Accept': 'application/json, text/plain, */*' }
+        });
+        if (!resp.ok) return { _error: resp.status };
+        return resp.json();
+    } catch(e) {
+        return { _error: String(e) };
+    }
+}
+"""
+
+
 def _get_via_playwright(path: str) -> dict:
-    """Recupera endpoint via Playwright: cache primeiro, depois navega na página de time."""
+    """Recupera endpoint via Playwright: cache primeiro, depois navega na página de time/evento."""
     global _playwright_page
 
     # 1. Verificar cache (populado pela navegação na página do torneio)
@@ -124,23 +140,7 @@ def _get_via_playwright(path: str) -> dict:
     url = f"{BASE_URL}{path}"
     logger.info("Playwright fetch (JS context): %s", url)
 
-    data = _playwright_page.evaluate(
-        """
-        async (url) => {
-            try {
-                const resp = await fetch(url, {
-                    credentials: 'include',
-                    headers: { 'Accept': 'application/json, text/plain, */*' }
-                });
-                if (!resp.ok) return { _error: resp.status };
-                return resp.json();
-            } catch(e) {
-                return { _error: String(e) };
-            }
-        }
-        """,
-        url,
-    )
+    data = _playwright_page.evaluate(_FETCH_JS, url)
 
     if data and "_error" not in data:
         _playwright_cache[path] = data
@@ -151,20 +151,25 @@ def _get_via_playwright(path: str) -> dict:
         parts = path.strip("/").split("/")
         if len(parts) >= 2:
             team_id = parts[1]
-            team_slug = _playwright_cache.get(f"__slug_{team_id}", team_id)
+            team_slug = _playwright_cache.get(f"__slug_{team_id}", "x")
             team_page = f"https://www.sofascore.com/team/football/{team_slug}/{team_id}"
             logger.info("Navegando na pagina de time: %s", team_page)
             try:
                 _playwright_page.goto(team_page, wait_until="domcontentloaded", timeout=25000)
-                _playwright_page.wait_for_timeout(5000)
+                _playwright_page.wait_for_timeout(6000)
             except Exception as nav_err:
                 logger.warning("Navegacao timeout/erro (%s) — continuando com cache", nav_err)
             if path in _playwright_cache:
                 return _playwright_cache[path]
+            # 3a. Sessão "aquecida" pela navegação — tentar o fetch JS novamente
+            data = _playwright_page.evaluate(_FETCH_JS, url)
+            if data and "_error" not in data:
+                _playwright_cache[path] = data
+                return data
 
     # 3b. Para endpoints de evento (/event/{customId}/...), navegar na página da partida.
-    # Sofascore redireciona "/event/{customId}" para a URL completa da partida e dispara
-    # as mesmas chamadas de API que um usuário real geraria (incluindo h2h/events).
+    # Sofascore redireciona "/football/match/{slug}/{customId}" (slug é ignorado no
+    # roteamento) e dispara as mesmas chamadas de API que um usuário real geraria.
     if "/event/" in path:
         parts = path.strip("/").split("/")
         if len(parts) >= 2:
@@ -173,11 +178,16 @@ def _get_via_playwright(path: str) -> dict:
             logger.info("Navegando na pagina do evento: %s", event_page)
             try:
                 _playwright_page.goto(event_page, wait_until="domcontentloaded", timeout=25000)
-                _playwright_page.wait_for_timeout(5000)
+                _playwright_page.wait_for_timeout(6000)
             except Exception as nav_err:
                 logger.warning("Navegacao timeout/erro (%s) — continuando com cache", nav_err)
             if path in _playwright_cache:
                 return _playwright_cache[path]
+            # 3c. Sessão "aquecida" pela navegação — tentar o fetch JS novamente
+            data = _playwright_page.evaluate(_FETCH_JS, url)
+            if data and "_error" not in data:
+                _playwright_cache[path] = data
+                return data
 
     logger.warning("Playwright não conseguiu obter: %s (data=%s)", path, data)
     return {}
