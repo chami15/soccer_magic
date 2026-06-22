@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS team_stats (
   avg_goals_2h          NUMERIC(4,2),
   form_sequence         TEXT,
   trend_goals_3v5       NUMERIC(4,2),
+  goal_distribution_summary JSONB,      -- resumo de /goal-distributions (agregado da temporada, escopo diferente da janela)
   updated_at            TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -94,6 +95,7 @@ CREATE TABLE IF NOT EXISTS matches_schedule (
   start_timestamp BIGINT NOT NULL,
   status_type     TEXT,                   -- 'notstarted' | 'finished' | 'inprogress'
   venue_city      TEXT,
+  h2h_summary     JSONB,                  -- resumo de /event/{customId}/h2h/events (confrontos diretos passados)
   updated_at      TIMESTAMPTZ DEFAULT NOW()
 );
 

@@ -74,6 +74,7 @@ export type Database = {
           away_team_name: string | null
           custom_id: string | null
           group_name: string | null
+          h2h_summary: Json | null
           home_team_id: number | null
           home_team_name: string | null
           match_date: string
@@ -89,6 +90,7 @@ export type Database = {
           away_team_name?: string | null
           custom_id?: string | null
           group_name?: string | null
+          h2h_summary?: Json | null
           home_team_id?: number | null
           home_team_name?: string | null
           match_date: string
@@ -104,6 +106,7 @@ export type Database = {
           away_team_name?: string | null
           custom_id?: string | null
           group_name?: string | null
+          h2h_summary?: Json | null
           home_team_id?: number | null
           home_team_name?: string | null
           match_date?: string
@@ -192,6 +195,7 @@ export type Database = {
           form_sequence: string | null
           friendly_count: number
           games_window: Json | null
+          goal_distribution_summary: Json | null
           over15_pct: number | null
           over25_pct: number | null
           over35_corners_pct: number | null
@@ -227,6 +231,7 @@ export type Database = {
           form_sequence?: string | null
           friendly_count?: number
           games_window?: Json | null
+          goal_distribution_summary?: Json | null
           over15_pct?: number | null
           over25_pct?: number | null
           over35_corners_pct?: number | null
@@ -262,6 +267,7 @@ export type Database = {
           form_sequence?: string | null
           friendly_count?: number
           games_window?: Json | null
+          goal_distribution_summary?: Json | null
           over15_pct?: number | null
           over25_pct?: number | null
           over35_corners_pct?: number | null

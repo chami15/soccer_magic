@@ -15,7 +15,8 @@ import persistence
 from collector import WC_TOURNAMENT_ID, get_wc_2026_season_id, get_wc_teams
 from collector import get_team_recent_matches, get_match_statistics, get_match_incidents
 from collector import get_tournament_next_events, get_tournament_last_events
-from transformer import transform
+from collector import get_team_goal_distributions, get_h2h_events
+from transformer import transform, summarize_h2h
 from window import build_window
 
 logging.basicConfig(
@@ -57,7 +58,7 @@ def _build_match_log_row(match: dict, team_id: int, in_window: bool) -> dict:
     }
 
 
-def _build_schedule_row(match: dict) -> dict:
+def _build_schedule_row(match: dict, h2h_summary: dict | None) -> dict:
     tournament = match.get("tournament", {})
     return {
         "match_id": match["id"],
@@ -72,13 +73,27 @@ def _build_schedule_row(match: dict) -> dict:
         "start_timestamp": match["startTimestamp"],
         "status_type": match.get("status", {}).get("type"),
         "venue_city": match.get("venue", {}).get("city", {}).get("name"),
+        "h2h_summary": h2h_summary,
     }
 
 
 def save_tournament_schedule(client: httpx.Client) -> None:
-    """Salva o calendário completo (próximos + últimos jogos do torneio) para filtros no frontend."""
+    """Salva o calendário completo (próximos + últimos jogos do torneio) para filtros no frontend.
+    Para jogos ainda não realizados ('notstarted'), busca também o histórico de confrontos
+    diretos (h2h), do ponto de vista do time de casa — não vale a pena buscar h2h para
+    jogos já encerrados, pois o resultado dessa partida específica não muda a análise."""
     events = get_tournament_next_events(client) + get_tournament_last_events(client)
-    rows = [_build_schedule_row(e) for e in events]
+    rows = []
+    for event in events:
+        h2h_summary = None
+        custom_id = event.get("customId")
+        if event.get("status", {}).get("type") == "notstarted" and custom_id:
+            try:
+                h2h_events = get_h2h_events(client, custom_id)
+                h2h_summary = summarize_h2h(h2h_events, event["homeTeam"]["id"])
+            except Exception as exc:
+                logger.warning("Erro ao buscar h2h para %s: %s", custom_id, exc)
+        rows.append(_build_schedule_row(event, h2h_summary))
     try:
         persistence.save_matches_schedule(rows)
     except Exception as exc:
@@ -176,7 +191,13 @@ def process_team(client: httpx.Client, team: dict, errors: list) -> tuple[bool, 
         logger.error("Erro ao salvar match_log para %s: %s", team_name, exc)
         errors.append({"team_id": team_id, "team_name": team_name, "error": str(exc), "phase": "save_match_log"})
 
-    stats_row = transform(team_id, window_result, match_stats, match_incidents)
+    try:
+        goal_distributions = get_team_goal_distributions(client, team_id)
+    except Exception as exc:
+        logger.warning("Goal distributions não disponíveis para %s: %s", team_name, exc)
+        goal_distributions = []
+
+    stats_row = transform(team_id, window_result, match_stats, match_incidents, goal_distributions)
 
     prev_window = persistence.get_current_window(team_id)
     window_changed = prev_window != stats_row["games_window"]
