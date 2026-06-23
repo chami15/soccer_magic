@@ -187,6 +187,11 @@ def _get_via_playwright(path: str, custom_id: str | None = None) -> dict:
             team_id = parts[1]
             team_slug = _playwright_cache.get(f"__slug_{team_id}", "x")
             team_page = f"https://www.sofascore.com/team/football/{team_slug}/{team_id}"
+            # statistics/overall é lazy-loaded na aba "Statistics" da página do time —
+            # navegação simples na home do time não dispara esse XHR (confirmado via
+            # DevTools real: URL com #tab:statistics é necessária para carregar a aba).
+            if "statistics/overall" in path:
+                team_page += "#tab:statistics"
             logger.info("Navegando na pagina de time: %s", team_page)
             try:
                 _playwright_page.goto(team_page, wait_until="domcontentloaded", timeout=25000)
