@@ -34,3 +34,26 @@ CREATE TABLE IF NOT EXISTS dim_jogador (
   selecao_id      INTEGER REFERENCES dim_selecao(id),
   atualizado_em   TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- ---------------------------------------------------
+-- FATO_PARTIDA
+-- Fato: 1 linha por jogo (passado ou futuro/agendado).
+-- ---------------------------------------------------
+CREATE TABLE IF NOT EXISTS fato_partida (
+  id              INTEGER PRIMARY KEY,   -- ID Sofascore do evento
+  custom_id       TEXT,                  -- slug usado em /event/{customId}/h2h/events
+  selecao_home_id INTEGER NOT NULL REFERENCES dim_selecao(id),
+  selecao_away_id INTEGER NOT NULL REFERENCES dim_selecao(id),
+  placar_home     INTEGER,
+  placar_away     INTEGER,
+  placar_ht_home  INTEGER,
+  placar_ht_away  INTEGER,
+  status          TEXT,                  -- 'notstarted' | 'inprogress' | 'finished'
+  vencedor_id     INTEGER REFERENCES dim_selecao(id),  -- NULL se empate ou nao terminou
+  tipo            TEXT,                  -- 'Copa' | 'Amistoso'
+  grupo           TEXT,                  -- ex: 'Group I' (fase de grupos)
+  rodada          INTEGER,
+  data_partida    DATE,
+  cidade          TEXT,
+  atualizado_em   TIMESTAMPTZ DEFAULT NOW()
+);
