@@ -122,6 +122,7 @@ def transform(
     match_stats: dict,    # {match_id: lista de grupos /statistics}
     match_incidents: dict,  # {match_id: lista de incidentes /incidents}
     goal_distributions: list[dict] | None = None,
+    overall_stats: dict | None = None,
 ) -> dict:
     """
     Transforma os dados da janela em uma linha de team_stats.
@@ -221,5 +222,6 @@ def transform(
         "form_sequence": form_sequence,
         "trend_goals_3v5": trend_goals_3v5,
         "goal_distribution_summary": summarize_goal_distribution(goal_distributions or []),
+        "tournament_overall_stats": overall_stats or None,
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }

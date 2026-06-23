@@ -201,6 +201,7 @@ export type Database = {
           over35_corners_pct: number | null
           over35_pct: number | null
           team_id: number
+          tournament_overall_stats: Json | null
           trend_goals_3v5: number | null
           updated_at: string | null
         }
@@ -273,6 +274,7 @@ export type Database = {
           over35_corners_pct?: number | null
           over35_pct?: number | null
           team_id?: number
+          tournament_overall_stats?: Json | null
           trend_goals_3v5?: number | null
           updated_at?: string | null
         }

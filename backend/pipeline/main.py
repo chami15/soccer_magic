@@ -15,7 +15,7 @@ import persistence
 from collector import WC_TOURNAMENT_ID, get_wc_2026_season_id, get_wc_teams
 from collector import get_team_recent_matches, get_match_statistics, get_match_incidents
 from collector import get_tournament_next_events, get_tournament_last_events
-from collector import get_team_goal_distributions, get_h2h_events
+from collector import get_team_goal_distributions, get_h2h_events, get_team_overall_statistics
 from transformer import transform, summarize_h2h
 from window import build_window
 
@@ -198,7 +198,13 @@ def process_team(client: httpx.Client, team: dict, errors: list) -> tuple[bool, 
         logger.warning("Goal distributions não disponíveis para %s: %s", team_name, exc)
         goal_distributions = []
 
-    stats_row = transform(team_id, window_result, match_stats, match_incidents, goal_distributions)
+    try:
+        overall_stats = get_team_overall_statistics(client, team_id)
+    except Exception as exc:
+        logger.warning("Estatisticas overall não disponíveis para %s: %s", team_name, exc)
+        overall_stats = None
+
+    stats_row = transform(team_id, window_result, match_stats, match_incidents, goal_distributions, overall_stats)
 
     prev_window = persistence.get_current_window(team_id)
     window_changed = prev_window != stats_row["games_window"]

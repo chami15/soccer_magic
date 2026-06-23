@@ -357,3 +357,13 @@ def get_h2h_events(client: httpx.Client, custom_id: str) -> list[dict]:
     Usa o customId do evento (ex: 'VTbsYUb'), não o match_id numérico."""
     resp = _get(client, f"/event/{custom_id}/h2h/events")
     return resp.get("events", [])
+
+
+def get_team_overall_statistics(
+    client: httpx.Client, team_id: int, tournament_id: int = WC_TOURNAMENT_ID, season_id: int = WC_2026_SEASON_ID
+) -> dict:
+    """Retorna as estatísticas agregadas do time na Copa inteira (escopo: todos os jogos
+    já disputados no torneio, não a janela deslizante de 5 jogos). Carregado na própria
+    página de perfil do time (aba 'Statistics'), por isso usa o fallback genérico /team/."""
+    resp = _get(client, f"/team/{team_id}/unique-tournament/{tournament_id}/season/{season_id}/statistics/overall")
+    return resp.get("statistics", {})

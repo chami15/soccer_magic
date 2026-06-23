@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS team_stats (
   form_sequence         TEXT,
   trend_goals_3v5       NUMERIC(4,2),
   goal_distribution_summary JSONB,      -- resumo de /goal-distributions (agregado da temporada, escopo diferente da janela)
+  tournament_overall_stats  JSONB,      -- /statistics/overall (agregado de TODOS os jogos da Copa, escopo diferente da janela)
   updated_at            TIMESTAMPTZ DEFAULT NOW()
 );
 
