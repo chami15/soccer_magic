@@ -12,8 +12,7 @@
 CREATE TABLE IF NOT EXISTS dim_selecao (
   id            INTEGER PRIMARY KEY,   -- ID Sofascore do time
   nome          TEXT NOT NULL,
-  pais          TEXT,
-  bandeira_url  TEXT,
+  continente    TEXT,
   grupo         TEXT,                  -- 'A' a 'L'
   ranking_fifa  INTEGER,                -- posição atual no ranking FIFA
   atualizado_em TIMESTAMPTZ DEFAULT NOW()
