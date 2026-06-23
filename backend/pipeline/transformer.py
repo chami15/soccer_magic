@@ -19,9 +19,8 @@ STATS_MAP = {
     "Yellow cards":      "yellow_cards",
     "Red cards":         "red_cards",
     "Goalkeeper saves":  "saves",
-    "Total passes":      "passes_total",
+    "Passes":            "passes_total",
     "Accurate passes":   "passes_accurate",
-    "Accurate passes %": "passes_pct",
 }
 
 
@@ -157,6 +156,7 @@ def transform(
 
     # Acumular stats por partida
     stats_acc: dict[str, list] = {k: [] for k in STATS_MAP.values()}
+    stats_acc["passes_pct"] = []
     corners_list: list = []
 
     for match in window.window:
@@ -166,6 +166,11 @@ def transform(
         for k in STATS_MAP.values():
             stats_acc[k].append(coalesce(s.get(k)))
         corners_list.append(coalesce(s.get("corners")))
+        # Accurate passes % não vem pronta da API — calculada a partir de accurate/total.
+        passes_total_match = coalesce(s.get("passes_total"))
+        passes_accurate_match = coalesce(s.get("passes_accurate"))
+        pct = (passes_accurate_match / passes_total_match * 100) if passes_total_match else 0.0
+        stats_acc["passes_pct"].append(pct)
 
     over35_corners_count = sum(1 for c in corners_list if c >= 4)
 
