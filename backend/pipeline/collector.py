@@ -292,6 +292,7 @@ def get_wc_teams(client: httpx.Client, season_id: int) -> list[dict]:
     resp = _get(client, f"/unique-tournament/{WC_TOURNAMENT_ID}/season/{season_id}/standings/total")
     teams_seen: dict[int, dict] = {}
     for group in resp.get("standings", []):
+        group_sign = group.get("tournament", {}).get("groupSign")
         for row in group.get("rows", []):
             team = row.get("team", {})
             tid = team.get("id")
@@ -305,7 +306,8 @@ def get_wc_teams(client: httpx.Client, season_id: int) -> list[dict]:
                     "name": name,
                     "country": team.get("country", {}).get("name") if team.get("country") else None,
                     "flag_url": f"https://www.sofascore.com/api/v1/team/{tid}/image",
-                    "group_name": None,
+                    "group_name": group_sign,
+                    "ranking_fifa": team.get("ranking"),
                 }
     return list(teams_seen.values())
 

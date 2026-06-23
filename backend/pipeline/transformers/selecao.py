@@ -4,9 +4,9 @@ Converte o dict de time retornado por collector.get_wc_teams() no formato
 de linha esperado por persisters/selecao.py.
 """
 
-# TODO: collector.get_wc_teams() ainda não extrai o grupo real (group_name
-# sempre vem None) nem o continente (só "country" está disponível). Ambos
-# precisam ser resolvidos no collector antes deste transformer ficar completo.
+# TODO: continente ainda nao tem mapeamento (so "country" esta disponivel
+# no payload do Sofascore). group_name e ranking_fifa ja vem prontos do
+# collector (tournament.groupSign e team.ranking, respectivamente).
 
 CONTINENTE_POR_PAIS = {
     # TODO: preencher o mapeamento pais -> continente conforme os 48 times
