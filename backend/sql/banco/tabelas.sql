@@ -24,15 +24,13 @@ CREATE TABLE IF NOT EXISTS dim_selecao (
 -- (gols/assistências) e no passing network do Sofascore.
 -- ---------------------------------------------------
 CREATE TABLE IF NOT EXISTS dim_jogador (
-  id                  INTEGER PRIMARY KEY,   -- ID Sofascore do jogador
-  nome                TEXT NOT NULL,
-  nome_curto          TEXT,                  -- ex: "Vinícius Jr."
-  posicao             TEXT,                  -- 'F', 'M', 'D', 'G'
-  numero_camisa       TEXT,
-  altura_cm           INTEGER,
-  data_nascimento     DATE,
-  valor_mercado       NUMERIC(12,2),
-  valor_mercado_moeda TEXT,                  -- ex: 'EUR'
-  selecao_id          INTEGER REFERENCES dim_selecao(id),
-  atualizado_em       TIMESTAMPTZ DEFAULT NOW()
+  id              INTEGER PRIMARY KEY,   -- ID Sofascore do jogador
+  nome            TEXT NOT NULL,
+  nome_curto      TEXT,                  -- ex: "Vinícius Jr."
+  posicao         TEXT,                  -- 'F', 'M', 'D', 'G'
+  numero_camisa   TEXT,
+  valor_mercado   NUMERIC(12,2),
+  moeda           TEXT,                  -- ex: 'EUR'
+  selecao_id      INTEGER REFERENCES dim_selecao(id),
+  atualizado_em   TIMESTAMPTZ DEFAULT NOW()
 );
