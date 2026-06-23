@@ -217,6 +217,11 @@ def _get_via_playwright(path: str, custom_id: str | None = None) -> dict:
         if len(parts) >= 2:
             nav_custom_id = custom_id or parts[1]
             event_page = f"https://www.sofascore.com/football/match/x/{nav_custom_id}"
+            # statistics da partida também é lazy-loaded na aba "Statistics" da página do
+            # evento (confirmado via DevTools real: URL real era .../match/.../{customId}
+            # #id:{eventId},tab:statistics — sem o fragmento a navegação não dispara o XHR).
+            if "statistics" in path and "h2h" not in path:
+                event_page += "#tab:statistics"
             logger.info("Navegando na pagina do evento: %s", event_page)
             try:
                 _playwright_page.goto(event_page, wait_until="domcontentloaded", timeout=25000)
