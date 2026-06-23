@@ -57,3 +57,34 @@ CREATE TABLE IF NOT EXISTS fato_partida (
   cidade          TEXT,
   atualizado_em   TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- ---------------------------------------------------
+-- FATO_ESTATISTICA_SELECAO_PARTIDA
+-- Fato: 1 linha por seleção por partida — estatísticas
+-- granulares (substitui o calculo de medias direto no
+-- pipeline Python; agora a media da janela pode ser uma
+-- VIEW/query sobre esta tabela).
+-- ---------------------------------------------------
+CREATE TABLE IF NOT EXISTS fato_estatistica_selecao_partida (
+  partida_id          INTEGER NOT NULL REFERENCES fato_partida(id),
+  selecao_id           INTEGER NOT NULL REFERENCES dim_selecao(id),
+  posse_bola            NUMERIC(5,2),
+  chutes_total           INTEGER,
+  chutes_no_gol          INTEGER,
+  chutes_bloqueados      INTEGER,
+  chutes_dentro_area     INTEGER,
+  chutes_fora_area       INTEGER,
+  escanteios             INTEGER,
+  impedimentos           INTEGER,
+  faltas                 INTEGER,
+  cartoes_amarelos       INTEGER,
+  cartoes_vermelhos      INTEGER,
+  defesas                INTEGER,
+  passes_total           INTEGER,
+  passes_certos          INTEGER,
+  passes_precisao_pct    NUMERIC(5,2),
+  gols_1_tempo           INTEGER,
+  gols_2_tempo           INTEGER,
+  performance_rating     NUMERIC(4,2),  -- nota de desempenho do Sofascore na partida
+  PRIMARY KEY (partida_id, selecao_id)
+);
