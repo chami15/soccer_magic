@@ -16,6 +16,7 @@ from collector import WC_TOURNAMENT_ID, get_wc_2026_season_id, get_wc_teams
 from collector import get_team_recent_matches, get_match_statistics, get_match_incidents
 from collector import get_tournament_next_events, get_tournament_last_events
 from collector import get_team_goal_distributions, get_h2h_events, get_team_overall_statistics
+from collector import get_team_performance_points
 from transformer import transform, summarize_h2h
 from window import build_window
 
@@ -38,7 +39,9 @@ def _opponent_name(match: dict, team_id: int) -> str:
     return match["homeTeam"].get("name", "")
 
 
-def _build_match_log_row(match: dict, team_id: int, in_window: bool) -> dict:
+def _build_match_log_row(
+    match: dict, team_id: int, in_window: bool, performance_points: dict[int, float] | None = None
+) -> dict:
     tournament = match.get("tournament", {}).get("uniqueTournament", {})
     tournament_id = tournament.get("id")
     return {
@@ -54,6 +57,7 @@ def _build_match_log_row(match: dict, team_id: int, in_window: bool) -> dict:
         "score_ht_home": match["homeScore"].get("period1"),
         "score_ht_away": match["awayScore"].get("period1"),
         "is_in_window": in_window,
+        "performance_rating": (performance_points or {}).get(match["id"]),
         "stats_raw": None,
     }
 
@@ -167,6 +171,12 @@ def process_team(client: httpx.Client, team: dict, errors: list) -> tuple[bool, 
     window_match_ids = {m["id"] for m in window_result.window}
     all_match_ids = {m["id"] for m in matches_raw}
 
+    try:
+        performance_points = get_team_performance_points(client, team_id)
+    except Exception as exc:
+        logger.warning("Performance points não disponíveis para %s: %s", team_name, exc)
+        performance_points = {}
+
     match_stats: dict[int, list] = {}
     match_incidents: dict[int, list] = {}
     match_log_rows: list[dict] = []
@@ -184,7 +194,7 @@ def process_team(client: httpx.Client, team: dict, errors: list) -> tuple[bool, 
         except Exception as exc:
             logger.warning("Incidentes não disponíveis para match %s: %s", mid, exc)
             match_incidents[mid] = []
-        match_log_rows.append(_build_match_log_row(match, team_id, True))
+        match_log_rows.append(_build_match_log_row(match, team_id, True, performance_points))
 
     try:
         persistence.save_match_log(match_log_rows)

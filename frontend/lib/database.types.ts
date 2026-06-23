@@ -17,6 +17,7 @@ export type Database = {
           match_id: number
           match_type: string | null
           opponent_name: string | null
+          performance_rating: number | null
           score_away: number | null
           score_home: number | null
           score_ht_away: number | null
@@ -33,6 +34,7 @@ export type Database = {
           match_id: number
           match_type?: string | null
           opponent_name?: string | null
+          performance_rating?: number | null
           score_away?: number | null
           score_home?: number | null
           score_ht_away?: number | null
@@ -49,6 +51,7 @@ export type Database = {
           match_id?: number
           match_type?: string | null
           opponent_name?: string | null
+          performance_rating?: number | null
           score_away?: number | null
           score_home?: number | null
           score_ht_away?: number | null

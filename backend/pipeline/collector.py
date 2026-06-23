@@ -187,10 +187,10 @@ def _get_via_playwright(path: str, custom_id: str | None = None) -> dict:
             team_id = parts[1]
             team_slug = _playwright_cache.get(f"__slug_{team_id}", "x")
             team_page = f"https://www.sofascore.com/team/football/{team_slug}/{team_id}"
-            # statistics/overall é lazy-loaded na aba "Statistics" da página do time —
-            # navegação simples na home do time não dispara esse XHR (confirmado via
-            # DevTools real: URL com #tab:statistics é necessária para carregar a aba).
-            if "statistics/overall" in path:
+            # statistics/overall e performance são lazy-loaded na aba "Statistics" da
+            # página do time — navegação simples na home do time não dispara esses XHRs
+            # (confirmado via DevTools real: URL com #tab:statistics é necessária).
+            if "statistics/overall" in path or path.endswith("/performance"):
                 team_page += "#tab:statistics"
             logger.info("Navegando na pagina de time: %s", team_page)
             try:
@@ -316,6 +316,15 @@ def get_team_recent_matches(client: httpx.Client, team_id: int, count: int = 10)
     finished = [e for e in events if e.get("status", {}).get("type") == "finished"]
     finished.sort(key=lambda e: e.get("startTimestamp", 0), reverse=True)
     return finished[:count]
+
+
+def get_team_performance_points(client: httpx.Client, team_id: int) -> dict[int, float]:
+    """Retorna {match_id: rating_de_desempenho} via /team/{id}/performance — nota calculada
+    pelo Sofascore para o desempenho do time naquela partida (carregado na aba Statistics
+    da página do time, mesmo lazy-load de statistics/overall)."""
+    resp = _get(client, f"/team/{team_id}/performance")
+    points = resp.get("points", {})
+    return {int(mid): val for mid, val in points.items()}
 
 
 def get_match_statistics(client: httpx.Client, match_id: int, custom_id: str | None = None) -> list[dict]:

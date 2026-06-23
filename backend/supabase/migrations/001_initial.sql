@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS match_log (
   score_ht_home   INTEGER,
   score_ht_away   INTEGER,
   is_in_window    BOOLEAN DEFAULT FALSE,
+  performance_rating NUMERIC(4,2),         -- nota de desempenho do Sofascore (/team/{id}/performance)
   stats_raw       JSONB,
   created_at      TIMESTAMPTZ DEFAULT NOW()
 );
