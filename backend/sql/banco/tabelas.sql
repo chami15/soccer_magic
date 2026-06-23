@@ -96,6 +96,12 @@ CREATE TABLE IF NOT EXISTS fato_estatistica_selecao_partida (
 -- FATO_EVENTO_PARTIDA
 -- Fato: 1 linha por evento granular da partida (gol,
 -- cartao, substituicao) — com jogador, assistencia e minuto.
+-- jogador_id é reaproveitado: jogador que marcou (gol) ou que
+-- recebeu o cartao (cartao_amarelo/vermelho). Em substituicao,
+-- usar jogador_saida_id/jogador_entrada_id em vez de jogador_id.
+-- Coordenadas de chute/passing network (footballPassingNetworkAction)
+-- ficaram fora por granularidade/complexidade alta para o MVP —
+-- avaliar no futuro como JSONB opcional se for necessario.
 -- ---------------------------------------------------
 CREATE TABLE IF NOT EXISTS fato_evento_partida (
   id              INTEGER PRIMARY KEY,    -- ID Sofascore do incidente
@@ -109,5 +115,6 @@ CREATE TABLE IF NOT EXISTS fato_evento_partida (
   jogador_saida_id       INTEGER REFERENCES dim_jogador(id),  -- p/ substituicao
   jogador_entrada_id     INTEGER REFERENCES dim_jogador(id),  -- p/ substituicao
   tipo_gol        TEXT,                   -- 'regular' | 'penalty' | 'own-goal' | etc.
+  var_decisao     TEXT,                   -- ex: 'goal_awarded' | 'goal_disallowed', quando houve revisao VAR
   criado_em       TIMESTAMPTZ DEFAULT NOW()
 );
