@@ -1,7 +1,6 @@
 """
-Teste manual e isolado: insere 1 linha em dim_selecao (Brasil) usando
-o pipeline raw-SQL (utils/executar_query) para validar a conexao com
-o Postgres do Supabase antes de integrar ao pipeline completo.
+Teste manual: busca o Brasil via collector, transforma e persiste em
+dim_selecao usando o fluxo real (transformer -> persister).
 
 Rodar localmente (fora do sandbox remoto, onde a porta do Postgres
 nao e bloqueada):
@@ -10,24 +9,22 @@ nao e bloqueada):
     python3 test_insert_selecao.py
 """
 
-from utils.query_executor import executar_query
+import httpx
+
+from pipeline import collector
+from pipeline.transformers.selecao import transform_selecao
+from pipeline.persisters.selecao import upsert_selecao
 
 if __name__ == "__main__":
-    rows = executar_query(
-        "selecao:create_table",
-        commit=True,
-    )
-    print("create_table ok")
+    with httpx.Client() as client:
+        season_id = collector.get_wc_2026_season_id(client)
+        teams = collector.get_wc_teams(client, season_id)
 
-    inserted = executar_query(
-        "selecao:insert_teste",
-        returning=True,
-        params=(4748, "Brazil", "America do Sul", "G", None),
-    )
-    print("inserido:", inserted)
+    brasil = next(t for t in teams if t["id"] == 4748)
+    print("dados brutos do collector:", brasil)
 
-    check = executar_query(
-        "selecao:select_teste",
-        params=(4748,),
-    )
-    print("select:", check)
+    row = transform_selecao(brasil)
+    print("transformado:", row)
+
+    salvo = upsert_selecao(row)
+    print("salvo:", salvo)

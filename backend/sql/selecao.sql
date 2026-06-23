@@ -19,7 +19,7 @@ ALTER TABLE dim_selecao ENABLE ROW LEVEL SECURITY;
 --QUERY: create_policy_read
 CREATE POLICY "public_read_dim_selecao" ON dim_selecao FOR SELECT USING (true);
 
---QUERY: insert_teste
+--QUERY: upsert
 INSERT INTO dim_selecao (id, nome, continente, grupo, ranking_fifa)
 VALUES (%s, %s, %s, %s, %s)
 ON CONFLICT (id) DO UPDATE SET
@@ -30,5 +30,5 @@ ON CONFLICT (id) DO UPDATE SET
   atualizado_em = NOW()
 RETURNING id, nome;
 
---QUERY: select_teste
+--QUERY: select_by_id
 SELECT * FROM dim_selecao WHERE id = %s;
