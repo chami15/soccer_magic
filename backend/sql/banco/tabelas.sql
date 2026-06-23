@@ -118,3 +118,40 @@ CREATE TABLE IF NOT EXISTS fato_evento_partida (
   var_decisao     TEXT,                   -- ex: 'goal_awarded' | 'goal_disallowed', quando houve revisao VAR
   criado_em       TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- ---------------------------------------------------
+-- PIPELINE_RUNS
+-- Log de execucoes do pipeline (igual ao schema atual).
+-- ---------------------------------------------------
+CREATE TABLE IF NOT EXISTS pipeline_runs (
+  id               SERIAL PRIMARY KEY,
+  started_at       TIMESTAMPTZ NOT NULL,
+  finished_at      TIMESTAMPTZ,
+  teams_processed  INTEGER DEFAULT 0,
+  windows_changed  INTEGER DEFAULT 0,
+  errors_count     INTEGER DEFAULT 0,
+  error_log        JSONB,
+  triggered_by     TEXT DEFAULT 'manual'
+                     CHECK (triggered_by IN ('manual', 'cron'))
+);
+
+-- ---------------------------------------------------
+-- FATO_H2H_EVENTO
+-- Fato: 1 linha por confronto direto historico entre duas
+-- selecoes, vindo de /event/{customId}/h2h/events — escopo
+-- mais amplo que fato_partida (cobre jogos de outros torneios
+-- e anos anteriores, nao só a janela atual da Copa).
+-- ---------------------------------------------------
+CREATE TABLE IF NOT EXISTS fato_h2h_evento (
+  id              INTEGER PRIMARY KEY,   -- ID Sofascore do evento
+  selecao_a_id    INTEGER NOT NULL REFERENCES dim_selecao(id),
+  selecao_b_id    INTEGER NOT NULL REFERENCES dim_selecao(id),
+  placar_a        INTEGER,
+  placar_b        INTEGER,
+  vencedor_id     INTEGER REFERENCES dim_selecao(id),  -- NULL se empate
+  torneio_nome    TEXT,
+  data_partida    DATE,
+  performance_a   NUMERIC(4,2),  -- nota de desempenho do Sofascore da selecao_a nesse confronto
+  performance_b   NUMERIC(4,2),  -- nota de desempenho do Sofascore da selecao_b nesse confronto
+  criado_em       TIMESTAMPTZ DEFAULT NOW()
+);
