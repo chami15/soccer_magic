@@ -91,3 +91,23 @@ CREATE TABLE IF NOT EXISTS fato_estatistica_selecao_partida (
   performance_rating     NUMERIC(4,2),  -- nota de desempenho do Sofascore na partida
   PRIMARY KEY (partida_id, selecao_id)
 );
+
+-- ---------------------------------------------------
+-- FATO_EVENTO_PARTIDA
+-- Fato: 1 linha por evento granular da partida (gol,
+-- cartao, substituicao) — com jogador, assistencia e minuto.
+-- ---------------------------------------------------
+CREATE TABLE IF NOT EXISTS fato_evento_partida (
+  id              INTEGER PRIMARY KEY,    -- ID Sofascore do incidente
+  partida_id      INTEGER NOT NULL REFERENCES fato_partida(id),
+  selecao_id      INTEGER NOT NULL REFERENCES dim_selecao(id),
+  tipo_evento     TEXT NOT NULL,          -- 'gol' | 'cartao_amarelo' | 'cartao_vermelho' | 'substituicao'
+  minuto          INTEGER NOT NULL,
+  minuto_extra     INTEGER,                -- tempo de acrescimo, quando houver
+  jogador_id      INTEGER REFERENCES dim_jogador(id),
+  assistencia_jogador_id INTEGER REFERENCES dim_jogador(id),
+  jogador_saida_id       INTEGER REFERENCES dim_jogador(id),  -- p/ substituicao
+  jogador_entrada_id     INTEGER REFERENCES dim_jogador(id),  -- p/ substituicao
+  tipo_gol        TEXT,                   -- 'regular' | 'penalty' | 'own-goal' | etc.
+  criado_em       TIMESTAMPTZ DEFAULT NOW()
+);
