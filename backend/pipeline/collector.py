@@ -319,8 +319,15 @@ def get_team_recent_matches(client: httpx.Client, team_id: int, count: int = 10)
 
 
 def get_match_statistics(client: httpx.Client, match_id: int, custom_id: str | None = None) -> list[dict]:
+    """Retorna os grupos de estatísticas do período completo do jogo (ALL).
+
+    A resposta real do Sofascore separa as estatísticas por período
+    (ALL/1ST/2ND) — cada item de resp['statistics'] é {'period': ..., 'groups': [...]},
+    não o grupo em si. Pegamos apenas o período 'ALL' (jogo completo)."""
     resp = _get(client, f"/event/{match_id}/statistics", custom_id=custom_id)
-    return resp.get("statistics", [])
+    periods = resp.get("statistics", [])
+    full_match = next((p for p in periods if p.get("period") == "ALL"), None)
+    return full_match.get("groups", []) if full_match else []
 
 
 def get_match_incidents(client: httpx.Client, match_id: int, custom_id: str | None = None) -> list[dict]:
