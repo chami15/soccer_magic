@@ -72,14 +72,17 @@ def _extract_stats(statistics: list, is_home: bool) -> dict:
     return result
 
 
-def _count_goals_in_period(incidents: list, team_id: int, period: int) -> int:
-    """Conta gols marcados pelo time em um tempo (period=1 ou 2) via incidentes Sofascore."""
+def _count_goals_in_period(incidents: list, is_home: bool, period: int) -> int:
+    """Conta gols marcados pelo time em um tempo (period=1 ou 2) via incidentes Sofascore.
+
+    Incidentes de gol reais não têm chave 'period' nem 'team.id' — apenas 'time'
+    (minuto do gol) e 'isHome' (confirmado via JSON real do jogo Brasil x Haiti)."""
     return sum(
         1
         for inc in incidents
         if inc.get("incidentType") == "goal"
-        and inc.get("period") == period
-        and inc.get("team", {}).get("id") == team_id
+        and inc.get("isHome") == is_home
+        and ((inc.get("time", 0) <= 45) if period == 1 else (inc.get("time", 0) > 45))
     )
 
 
@@ -176,11 +179,11 @@ def transform(
 
     # Gols por tempo via incidentes
     goals_1h = [
-        _count_goals_in_period(match_incidents.get(m["id"], []), team_id, 1)
+        _count_goals_in_period(match_incidents.get(m["id"], []), _is_home(m, team_id), 1)
         for m in window.window
     ]
     goals_2h = [
-        _count_goals_in_period(match_incidents.get(m["id"], []), team_id, 2)
+        _count_goals_in_period(match_incidents.get(m["id"], []), _is_home(m, team_id), 2)
         for m in window.window
     ]
 
