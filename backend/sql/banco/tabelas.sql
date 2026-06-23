@@ -68,6 +68,9 @@ CREATE TABLE IF NOT EXISTS fato_partida (
 CREATE TABLE IF NOT EXISTS fato_estatistica_selecao_partida (
   partida_id          INTEGER NOT NULL REFERENCES fato_partida(id),
   selecao_id           INTEGER NOT NULL REFERENCES dim_selecao(id),
+  resultado             CHAR(1) CHECK (resultado IN ('V', 'E', 'D')),
+  gols_marcados          INTEGER,
+  gols_sofridos          INTEGER,
   posse_bola            NUMERIC(5,2),
   chutes_total           INTEGER,
   chutes_no_gol          INTEGER,
