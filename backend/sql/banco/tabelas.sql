@@ -2,6 +2,11 @@
 -- Soccer Magic — Banco v3 (modelo estrela)
 -- Construído incrementalmente: cada tabela é discutida e
 -- aprovada antes de ser adicionada aqui.
+--
+-- TODO (avaliar no futuro, nao descartado):
+-- - selecao_ranking_historico: ranking FIFA mes a mes por selecao,
+--   util para detectar tendencia/momento e contextualizar surpresas
+--   em confrontos (diferenca de ranking no momento exato do jogo).
 -- =====================================================
 
 -- ---------------------------------------------------
