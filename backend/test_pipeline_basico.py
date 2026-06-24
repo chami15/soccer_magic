@@ -14,6 +14,9 @@ Brasil como caso de teste:
   5. dim_jogador + fato_evento_partida (gols/cartoes/substituicoes do
                           mesmo jogo — os jogadores envolvidos sao
                           upsertados em dim_jogador antes, por causa da FK)
+  6. fato_h2h_evento     (historico de confrontos diretos Brasil x adversario
+                          do item 3 — os adversarios historicos tambem sao
+                          upsertados em dim_selecao antes, por causa da FK)
 
 ATENCAO: o mapeamento das 'key' do Sofascore (ballPossession,
 totalShotsOnGoal, etc.) em transformers/estatistica.py ja foi validado
@@ -43,6 +46,8 @@ from pipeline.transformers.jogador import transform_jogador
 from pipeline.persisters.jogador import upsert_jogador
 from pipeline.transformers.evento import extrair_jogadores, transform_eventos
 from pipeline.persisters.evento import upsert_evento
+from pipeline.transformers.h2h import transform_h2h, extrair_adversarios
+from pipeline.persisters.h2h import upsert_h2h
 
 BRASIL_ID = 4748
 POWER_RANKING_ROUND_ID = 134
@@ -124,3 +129,17 @@ if __name__ == "__main__":
         for row_evento in transform_eventos(incidents, match):
             print("evento transformado:", row_evento)
             print("evento salvo:", upsert_evento(row_evento))
+
+        print("\n=== 6. fato_h2h_evento (Brasil x adversario) ===")
+        h2h_events = collector.get_h2h_events(client, match.get("customId"))
+        print("eventos h2h brutos (primeiros 2):", h2h_events[:2])
+
+        for adversario_h2h in extrair_adversarios(h2h_events, BRASIL_ID):
+            row_sel_h2h = transform_selecao(_team_minimo(adversario_h2h))
+            print("adversario h2h transformado:", row_sel_h2h)
+            print("adversario h2h salvo:", upsert_selecao(row_sel_h2h))
+
+        for event in h2h_events:
+            row_h2h = transform_h2h(event, BRASIL_ID)
+            print("h2h transformado:", row_h2h)
+            print("h2h salvo:", upsert_h2h(row_h2h))

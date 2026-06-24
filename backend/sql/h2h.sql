@@ -26,3 +26,26 @@ ALTER TABLE fato_h2h_evento ENABLE ROW LEVEL SECURITY;
 
 --QUERY: create_policy_read
 CREATE POLICY "public_read_fato_h2h_evento" ON fato_h2h_evento FOR SELECT USING (true);
+
+--QUERY: upsert
+INSERT INTO fato_h2h_evento (
+  id, selecao_a_id, selecao_b_id, placar_a, placar_b, vencedor_id,
+  torneio_nome, data_partida, performance_a, performance_b
+)
+VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+ON CONFLICT (id) DO UPDATE SET
+  selecao_a_id = EXCLUDED.selecao_a_id,
+  selecao_b_id = EXCLUDED.selecao_b_id,
+  placar_a = EXCLUDED.placar_a,
+  placar_b = EXCLUDED.placar_b,
+  vencedor_id = EXCLUDED.vencedor_id,
+  torneio_nome = EXCLUDED.torneio_nome,
+  data_partida = EXCLUDED.data_partida,
+  performance_a = EXCLUDED.performance_a,
+  performance_b = EXCLUDED.performance_b
+RETURNING *;
+
+--QUERY: select_by_selecoes
+SELECT * FROM fato_h2h_evento
+WHERE (selecao_a_id = %s AND selecao_b_id = %s) OR (selecao_a_id = %s AND selecao_b_id = %s)
+ORDER BY data_partida DESC;
