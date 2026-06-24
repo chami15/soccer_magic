@@ -32,3 +32,28 @@ ALTER TABLE fato_evento_partida ENABLE ROW LEVEL SECURITY;
 
 --QUERY: create_policy_read
 CREATE POLICY "public_read_fato_evento_partida" ON fato_evento_partida FOR SELECT USING (true);
+
+--QUERY: upsert
+INSERT INTO fato_evento_partida (
+  id, partida_id, selecao_id, tipo_evento, minuto, minuto_extra,
+  jogador_id, assistencia_jogador_id, jogador_saida_id, jogador_entrada_id,
+  tipo_gol, var_decisao
+)
+VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+ON CONFLICT (id) DO UPDATE SET
+  partida_id = EXCLUDED.partida_id,
+  selecao_id = EXCLUDED.selecao_id,
+  tipo_evento = EXCLUDED.tipo_evento,
+  minuto = EXCLUDED.minuto,
+  minuto_extra = EXCLUDED.minuto_extra,
+  jogador_id = EXCLUDED.jogador_id,
+  assistencia_jogador_id = EXCLUDED.assistencia_jogador_id,
+  jogador_saida_id = EXCLUDED.jogador_saida_id,
+  jogador_entrada_id = EXCLUDED.jogador_entrada_id,
+  tipo_gol = EXCLUDED.tipo_gol,
+  var_decisao = EXCLUDED.var_decisao
+RETURNING *;
+
+--QUERY: select_by_partida
+SELECT * FROM fato_evento_partida WHERE partida_id = %s ORDER BY minuto;
+

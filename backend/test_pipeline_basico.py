@@ -11,14 +11,16 @@ Brasil como caso de teste:
   4. fato_estatistica_selecao_partida (Brasil + adversário, no mesmo jogo
                           do item 3 — vem dos dois lados numa unica
                           chamada a get_match_statistics)
+  5. dim_jogador + fato_evento_partida (gols/cartoes/substituicoes do
+                          mesmo jogo — os jogadores envolvidos sao
+                          upsertados em dim_jogador antes, por causa da FK)
 
 ATENCAO: o mapeamento das 'key' do Sofascore (ballPossession,
-totalShotsOnGoal, etc.) em transformers/estatistica.py ainda nao foi
-validado contra um payload real (o sandbox remoto nao consegue bater na
-API do Sofascore). Roda local e confere os 'groups brutos' impressos no
-console contra os valores transformados — se algum campo vier None onde
-deveria ter valor, e provavel que o 'key' real seja diferente do que
-foi assumido.
+totalShotsOnGoal, etc.) em transformers/estatistica.py ja foi validado
+contra um payload real. O mapeamento de transformers/evento.py (campos
+'incidentType'/'incidentClass'/'isHome'/'player'/'playerIn'/'playerOut')
+AINDA NAO foi validado — confere os 'incidentes brutos' impressos no
+console contra as linhas transformadas no passo 5.
 
 Rodar localmente:
 
@@ -37,6 +39,10 @@ from pipeline.transformers.partida import transform_partida
 from pipeline.persisters.partida import upsert_partida
 from pipeline.transformers.estatistica import transform_estatistica
 from pipeline.persisters.estatistica import upsert_estatistica
+from pipeline.transformers.jogador import transform_jogador
+from pipeline.persisters.jogador import upsert_jogador
+from pipeline.transformers.evento import extrair_jogadores, transform_eventos
+from pipeline.persisters.evento import upsert_evento
 
 BRASIL_ID = 4748
 POWER_RANKING_ROUND_ID = 134
@@ -105,3 +111,16 @@ if __name__ == "__main__":
         print("home salvo:", upsert_estatistica(linha_home))
         print("away transformado:", linha_away)
         print("away salvo:", upsert_estatistica(linha_away))
+
+        print("\n=== 5. dim_jogador + fato_evento_partida ===")
+        incidents = collector.get_match_incidents(client, match["id"], match.get("customId"))
+        print("incidentes brutos:", incidents)
+
+        for player, selecao_id in extrair_jogadores(incidents, match):
+            row_jogador = transform_jogador(player, selecao_id)
+            print("jogador transformado:", row_jogador)
+            print("jogador salvo:", upsert_jogador(row_jogador))
+
+        for row_evento in transform_eventos(incidents, match):
+            print("evento transformado:", row_evento)
+            print("evento salvo:", upsert_evento(row_evento))

@@ -22,3 +22,21 @@ ALTER TABLE dim_jogador ENABLE ROW LEVEL SECURITY;
 
 --QUERY: create_policy_read
 CREATE POLICY "public_read_dim_jogador" ON dim_jogador FOR SELECT USING (true);
+
+--QUERY: upsert
+INSERT INTO dim_jogador (id, nome, nome_curto, posicao, numero_camisa, valor_mercado, moeda, selecao_id)
+VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+ON CONFLICT (id) DO UPDATE SET
+  nome = EXCLUDED.nome,
+  nome_curto = EXCLUDED.nome_curto,
+  posicao = EXCLUDED.posicao,
+  numero_camisa = EXCLUDED.numero_camisa,
+  valor_mercado = EXCLUDED.valor_mercado,
+  moeda = EXCLUDED.moeda,
+  selecao_id = EXCLUDED.selecao_id,
+  atualizado_em = NOW()
+RETURNING *;
+
+--QUERY: select_by_id
+SELECT * FROM dim_jogador WHERE id = %s;
+
