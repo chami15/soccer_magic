@@ -28,3 +28,29 @@ ALTER TABLE fato_partida ENABLE ROW LEVEL SECURITY;
 
 --QUERY: create_policy_read
 CREATE POLICY "public_read_fato_partida" ON fato_partida FOR SELECT USING (true);
+
+--QUERY: upsert
+INSERT INTO fato_partida (
+  id, custom_id, selecao_home_id, selecao_away_id,
+  placar_home, placar_away, placar_ht_home, placar_ht_away,
+  status, vencedor_id, tipo, grupo, rodada, data_partida, cidade
+)
+VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+ON CONFLICT (id) DO UPDATE SET
+  custom_id = EXCLUDED.custom_id,
+  placar_home = EXCLUDED.placar_home,
+  placar_away = EXCLUDED.placar_away,
+  placar_ht_home = EXCLUDED.placar_ht_home,
+  placar_ht_away = EXCLUDED.placar_ht_away,
+  status = EXCLUDED.status,
+  vencedor_id = EXCLUDED.vencedor_id,
+  tipo = EXCLUDED.tipo,
+  grupo = EXCLUDED.grupo,
+  rodada = EXCLUDED.rodada,
+  data_partida = EXCLUDED.data_partida,
+  cidade = EXCLUDED.cidade,
+  atualizado_em = NOW()
+RETURNING *;
+
+--QUERY: select_by_id
+SELECT * FROM fato_partida WHERE id = %s;
