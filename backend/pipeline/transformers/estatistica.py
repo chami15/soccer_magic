@@ -38,6 +38,16 @@ def _num(item: dict | None, lado: str) -> float | None:
     return float(match.group()) if match else None
 
 
+def _passes_precisao_pct(flat: dict[str, dict], lado: str) -> float | None:
+    """A API nao manda o percentual de precisao de passe como campo separado —
+    so 'passes' (total) e 'accuratePasses' (certos). Calculamos aqui."""
+    total = _num(flat.get("passes"), lado)
+    certos = _num(flat.get("accuratePasses"), lado)
+    if not total:
+        return None
+    return round(certos / total * 100, 2) if certos is not None else None
+
+
 def _linha_para_lado(
     flat: dict[str, dict],
     lado: str,
@@ -70,7 +80,7 @@ def _linha_para_lado(
         "defesas": _num(flat.get("goalkeeperSaves"), lado),
         "passes_total": _num(flat.get("passes"), lado),
         "passes_certos": _num(flat.get("accuratePasses"), lado),
-        "passes_precisao_pct": _num(flat.get("passAccuracy"), lado),
+        "passes_precisao_pct": _passes_precisao_pct(flat, lado),
         "gols_1_tempo": gols_1_tempo,
         "gols_2_tempo": gols_2_tempo,
         "performance_rating": performance_rating,
