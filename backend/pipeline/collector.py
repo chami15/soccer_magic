@@ -395,3 +395,20 @@ def get_team_overall_statistics(
     página de perfil do time (aba 'Statistics'), por isso usa o fallback genérico /team/."""
     resp = _get(client, f"/team/{team_id}/unique-tournament/{tournament_id}/season/{season_id}/statistics/overall")
     return resp.get("statistics", {})
+
+
+def get_power_ranking_rounds(
+    client: httpx.Client, tournament_id: int = WC_TOURNAMENT_ID, season_id: int = WC_2026_SEASON_ID
+) -> list[dict]:
+    """Lista os rounds de power ranking disponiveis (cada round = 1 snapshot).
+    Usar o campo 'id' de cada item para buscar o snapshot via get_power_ranking_round."""
+    resp = _get(client, f"/unique-tournament/{tournament_id}/season/{season_id}/power-rankings/rounds")
+    return resp.get("powerRankingRounds", [])
+
+
+def get_power_ranking_round(
+    client: httpx.Client, round_id: int, tournament_id: int = WC_TOURNAMENT_ID, season_id: int = WC_2026_SEASON_ID
+) -> list[dict]:
+    """Retorna o snapshot do power ranking de 1 round especifico."""
+    resp = _get(client, f"/unique-tournament/{tournament_id}/season/{season_id}/power-rankings/round/{round_id}")
+    return resp.get("powerRankings", [])
