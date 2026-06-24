@@ -1,5 +1,5 @@
 """
-Teste manual escalonado: valida as 3 tabelas já com transformer/persister
+Teste manual escalonado: valida as 4 tabelas já com transformer/persister
 prontos, end-to-end (collector -> transformer -> persister), usando o
 Brasil como caso de teste:
 
@@ -8,6 +8,17 @@ Brasil como caso de teste:
   3. fato_partida        (1 jogo recente do Brasil + o adversário,
                           que precisa existir em dim_selecao por causa
                           da FK NOT NULL)
+  4. fato_estatistica_selecao_partida (Brasil + adversário, no mesmo jogo
+                          do item 3 — vem dos dois lados numa unica
+                          chamada a get_match_statistics)
+
+ATENCAO: o mapeamento das 'key' do Sofascore (ballPossession,
+totalShotsOnGoal, etc.) em transformers/estatistica.py ainda nao foi
+validado contra um payload real (o sandbox remoto nao consegue bater na
+API do Sofascore). Roda local e confere os 'groups brutos' impressos no
+console contra os valores transformados — se algum campo vier None onde
+deveria ter valor, e provavel que o 'key' real seja diferente do que
+foi assumido.
 
 Rodar localmente:
 
@@ -24,6 +35,8 @@ from pipeline.transformers.power_ranking import transform_power_ranking
 from pipeline.persisters.power_ranking import upsert_power_ranking
 from pipeline.transformers.partida import transform_partida
 from pipeline.persisters.partida import upsert_partida
+from pipeline.transformers.estatistica import transform_estatistica
+from pipeline.persisters.estatistica import upsert_estatistica
 
 BRASIL_ID = 4748
 POWER_RANKING_ROUND_ID = 134
@@ -82,3 +95,13 @@ if __name__ == "__main__":
         row_partida = transform_partida(match)
         print("partida transformada:", row_partida)
         print("partida salva:", upsert_partida(row_partida))
+
+        print("\n=== 4. fato_estatistica_selecao_partida (Brasil + adversario) ===")
+        groups = collector.get_match_statistics(client, match["id"], match.get("customId"))
+        print("groups brutos (primeiros 2):", groups[:2])
+        performance_points = collector.get_team_performance_points(client, BRASIL_ID)
+        linha_home, linha_away = transform_estatistica(groups, match, performance_points)
+        print("home transformado:", linha_home)
+        print("home salvo:", upsert_estatistica(linha_home))
+        print("away transformado:", linha_away)
+        print("away salvo:", upsert_estatistica(linha_away))
