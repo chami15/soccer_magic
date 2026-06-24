@@ -28,7 +28,7 @@ ON CONFLICT (id) DO UPDATE SET
   grupo = EXCLUDED.grupo,
   ranking_fifa = EXCLUDED.ranking_fifa,
   atualizado_em = NOW()
-RETURNING id, nome;
+RETURNING *;
 
 --QUERY: select_by_id
 SELECT * FROM dim_selecao WHERE id = %s;

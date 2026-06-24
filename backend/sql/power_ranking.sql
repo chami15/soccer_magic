@@ -34,7 +34,7 @@ ON CONFLICT (selecao_id, round_id) DO UPDATE SET
   rank = EXCLUDED.rank,
   pontos = EXCLUDED.pontos,
   rank_diff = EXCLUDED.rank_diff
-RETURNING selecao_id, round_id, rank;
+RETURNING *;
 
 --QUERY: select_by_selecao
 SELECT * FROM fato_power_ranking_selecao WHERE selecao_id = %s ORDER BY round_id;
