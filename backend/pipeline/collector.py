@@ -256,6 +256,10 @@ def _get_via_playwright(path: str, custom_id: str | None = None) -> dict:
 def _get(client: httpx.Client, path: str, retries: int = 3, custom_id: str | None = None) -> dict:
     """GET com rate limiting, retry e fallback Playwright.
 
+    403 cai imediatamente no Playwright sem retry — o Cloudflare bloqueia httpx
+    de forma determinística, então repetir a requisição nunca vai resolver.
+    Outros erros (5xx, timeout) ainda têm o retry completo de `retries` tentativas.
+
     custom_id: customId Sofascore da partida, repassado ao fallback Playwright para
     navegação quando o path usa o match_id numérico (ex: /event/{id}/statistics).
     """
@@ -267,8 +271,8 @@ def _get(client: httpx.Client, path: str, retries: int = 3, custom_id: str | Non
             resp.raise_for_status()
             return resp.json()
         except httpx.HTTPStatusError as exc:
-            if exc.response.status_code == 403 and attempt == retries - 1:
-                logger.warning("403 após %d tentativas — usando Playwright para %s", retries, path)
+            if exc.response.status_code == 403:
+                logger.warning("403 — usando Playwright para %s (Cloudflare bloqueia httpx)", path)
                 return _get_via_playwright(path, custom_id=custom_id)
             wait = 2 ** (attempt + 1)
             logger.warning("Tentativa %d falhou (%s): aguardando %ds", attempt + 1, exc, wait)
