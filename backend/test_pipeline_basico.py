@@ -29,14 +29,19 @@ BRASIL_ID = 4748
 POWER_RANKING_ROUND_ID = 134
 
 
-def _team_minimo(team: dict) -> dict:
+def _team_minimo(team: dict, group_sign: str | None = None) -> dict:
     """Adapta o objeto 'team' de dentro de um evento de partida (campos mais
-    escassos que o de standings) para o formato esperado por transform_selecao."""
+    escassos que o de standings) para o formato esperado por transform_selecao.
+
+    O objeto 'team' do evento de partida nao carrega o grupo diretamente —
+    quem tem essa informacao e o proprio evento (match['tournament']['groupName']/
+    'groupSign'), por isso group_sign precisa ser passado explicitamente pelo
+    chamador em vez de vir hardcoded como None."""
     return {
         "id": team["id"],
         "name": team.get("name", ""),
         "country": team.get("country", {}).get("name") if team.get("country") else None,
-        "group_name": None,
+        "group_name": group_sign,
         "ranking_fifa": team.get("ranking"),
     }
 
@@ -66,7 +71,11 @@ if __name__ == "__main__":
 
         is_home = match["homeTeam"]["id"] == BRASIL_ID
         adversario = match["awayTeam"] if is_home else match["homeTeam"]
-        row_adversario = transform_selecao(_team_minimo(adversario))
+        group_sign = match.get("tournament", {}).get("groupSign")
+        if not group_sign:
+            group_name = match.get("tournament", {}).get("groupName") or ""
+            group_sign = group_name.replace("Group ", "").strip() or None
+        row_adversario = transform_selecao(_team_minimo(adversario, group_sign))
         print("adversario transformado:", row_adversario)
         print("adversario salvo:", upsert_selecao(row_adversario))
 
