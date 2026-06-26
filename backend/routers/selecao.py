@@ -1,14 +1,17 @@
-"""
-Router — endpoints de seleção para o frontend.
-"""
+from fastapi import APIRouter, HTTPException
 
-from fastapi import APIRouter
+from resolvers import selecao_estatistica as resolver
 
-from resolvers.selecao_estatistica import resolver_estatisticas_selecao
+router = APIRouter(prefix="/api/selecoes", tags=["Seleções"])
 
-router = APIRouter(prefix="/selecoes", tags=["selecoes"])
 
+# ─────────────────────────────────────────────
+# Estatísticas
+# ─────────────────────────────────────────────
 
 @router.get("/{selecao_id}/estatisticas")
-def get_estatisticas_selecao(selecao_id: int) -> dict:
-    return resolver_estatisticas_selecao(selecao_id)
+def estatisticas_selecao(selecao_id: int):
+    try:
+        return resolver.resolver_estatisticas_selecao(selecao_id)
+    except Exception as e:
+        raise HTTPException(500, str(e))
