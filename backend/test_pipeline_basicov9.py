@@ -1,0 +1,233 @@
+"""
+Teste manual escalonado v9: coleta os 5 jogos mais recentes de Cabo Verde
+e da Arábia Saudita, persistindo tudo end-to-end.
+
+Estrutura idêntica à v4/v5/v6/v7/v8 — mesma função processar_time(), mesmos
+dados globais carregados uma única vez. Os dois times são localizados por
+nome na lista de times da Copa, sem IDs hardcoded.
+
+Rodar localmente:
+    cd backend
+    python3 test_pipeline_basicov9.py
+"""
+
+import httpx
+
+from pipeline import collector
+from pipeline.transformers.selecao import transform_selecao
+from pipeline.persisters.selecao import upsert_selecao
+from pipeline.transformers.power_ranking import transform_power_ranking
+from pipeline.persisters.power_ranking import upsert_power_ranking
+from pipeline.transformers.partida import transform_partida
+from pipeline.persisters.partida import upsert_partida
+from pipeline.transformers.estatistica import transform_estatistica
+from pipeline.persisters.estatistica import upsert_estatistica
+from pipeline.transformers.jogador import transform_jogador
+from pipeline.persisters.jogador import upsert_jogador
+from pipeline.transformers.evento import extrair_jogadores, transform_eventos
+from pipeline.persisters.evento import upsert_evento
+from pipeline.transformers.h2h import transform_h2h, extrair_adversarios
+from pipeline.persisters.h2h import upsert_h2h
+
+POWER_RANKING_ROUND_ID = 134
+NUM_MATCHES = 5
+
+
+def _team_minimo(team: dict, group_sign: str | None = None) -> dict:
+    return {
+        "id": team["id"],
+        "name": team.get("name", ""),
+        "country": team.get("country", {}).get("name") if team.get("country") else None,
+        "group_name": group_sign,
+        "ranking_fifa": team.get("ranking"),
+    }
+
+
+def _group_sign_from_match(match: dict) -> str | None:
+    sign = match.get("tournament", {}).get("groupSign")
+    if sign:
+        return sign
+    group_name = match.get("tournament", {}).get("groupName") or ""
+    return group_name.replace("Group ", "").strip() or None
+
+
+def processar_time(
+    client: httpx.Client,
+    team: dict,
+    rankings: list[dict],
+    round_id: int,
+    round_meta: dict,
+    num_matches: int,
+    label: str,
+) -> None:
+    """Executa o pipeline completo (dim_selecao → power ranking → N partidas) para um time."""
+    team_id = team["id"]
+
+    # ── 1. dim_selecao ────────────────────────────────────────────────────────
+    print(f"\n{'=' * 60}")
+    print(f"=== [{label}] 1. dim_selecao ===")
+    print("=" * 60)
+    row_selecao = transform_selecao(team)
+    print("transformado:", row_selecao)
+    print("salvo:", upsert_selecao(row_selecao))
+
+    # ── 2. power ranking ──────────────────────────────────────────────────────
+    print(f"\n{'=' * 60}")
+    print(f"=== [{label}] 2. fato_power_ranking_selecao ===")
+    print("=" * 60)
+    try:
+        ranking_item = next(item for item in rankings if item["team"]["id"] == team_id)
+        row_power = transform_power_ranking(ranking_item, round_id, round_meta)
+        print("transformado:", row_power)
+        print("salvo:", upsert_power_ranking(row_power))
+    except StopIteration:
+        print(f"  ⚠  {label} não encontrado no power ranking do round {round_id} — pulando.")
+
+    # ── 3. performance points ─────────────────────────────────────────────────
+    print(f"\nColetando performance points de {label}...")
+    try:
+        performance_points = collector.get_team_performance_points(client, team_id)
+        print(f"{len(performance_points)} registros de performance encontrados.")
+    except Exception as exc:
+        print(f"Performance points não disponíveis: {exc}")
+        performance_points = {}
+
+    # ── 4. buscar últimas N partidas ──────────────────────────────────────────
+    print(f"\nBuscando os {num_matches} jogos mais recentes de {label}...")
+    matches = collector.get_team_recent_matches(client, team_id, count=num_matches)
+    print(f"{len(matches)} jogo(s) encontrado(s):")
+    for idx, m in enumerate(matches):
+        print(
+            f"  [{idx + 1}] id={m['id']} | "
+            f"{m['homeTeam']['name']} {m['homeScore'].get('current')} x "
+            f"{m['awayScore'].get('current')} {m['awayTeam']['name']} | "
+            f"{m.get('tournament', {}).get('name', 'torneio desconhecido')}"
+        )
+
+    # ── Loop pelas partidas ───────────────────────────────────────────────────
+    for i, match in enumerate(matches):
+        is_home = match["homeTeam"]["id"] == team_id
+        adversario = match["awayTeam"] if is_home else match["homeTeam"]
+        group_sign = _group_sign_from_match(match)
+
+        print(f"\n{'#' * 60}")
+        print(
+            f"### [{label}] PARTIDA {i + 1}/{len(matches)}: "
+            f"{match['homeTeam']['name']} {match['homeScore'].get('current')} x "
+            f"{match['awayScore'].get('current')} {match['awayTeam']['name']} "
+            f"(id={match['id']}) ###"
+        )
+        print(f"{'#' * 60}")
+
+        # ── 5. dim_selecao adversário ─────────────────────────────────────
+        print(f"\n--- [{label}] 5.{i + 1} dim_selecao: {adversario['name']} ---")
+        row_adv = transform_selecao(_team_minimo(adversario, group_sign))
+        print("adversario transformado:", row_adv)
+        print("adversario salvo:", upsert_selecao(row_adv))
+
+        # ── 6. fato_partida ───────────────────────────────────────────────
+        print(f"\n--- [{label}] 6.{i + 1} fato_partida ---")
+        row_partida = transform_partida(match)
+        print("partida transformada:", row_partida)
+        print("partida salva:", upsert_partida(row_partida))
+
+        # ── 7. fato_estatistica_selecao_partida ───────────────────────────
+        print(f"\n--- [{label}] 7.{i + 1} fato_estatistica_selecao_partida ---")
+        groups = collector.get_match_statistics(client, match["id"], match.get("customId"))
+        print("groups brutos (primeiros 2):", groups[:2])
+        linha_home, linha_away = transform_estatistica(groups, match, performance_points)
+        print("home transformado:", linha_home)
+        print("home salvo:", upsert_estatistica(linha_home))
+        print("away transformado:", linha_away)
+        print("away salvo:", upsert_estatistica(linha_away))
+
+        # ── 8. dim_jogador + fato_evento_partida ──────────────────────────
+        print(f"\n--- [{label}] 8.{i + 1} dim_jogador + fato_evento_partida ---")
+        incidents = collector.get_match_incidents(client, match["id"], match.get("customId"))
+        print("incidentes brutos:", incidents)
+
+        for player, selecao_id in extrair_jogadores(incidents, match):
+            row_jogador = transform_jogador(player, selecao_id)
+            print("jogador transformado:", row_jogador)
+            print("jogador salvo:", upsert_jogador(row_jogador))
+
+        for row_evento in transform_eventos(incidents, match):
+            print("evento transformado:", row_evento)
+            print("evento salvo:", upsert_evento(row_evento))
+
+        # ── 9. fato_h2h_evento ────────────────────────────────────────────
+        print(f"\n--- [{label}] 9.{i + 1} fato_h2h_evento ({label} x {adversario['name']}) ---")
+        h2h_events = collector.get_h2h_events(client, match.get("customId"))
+        print("eventos h2h brutos (primeiros 2):", h2h_events[:2])
+
+        for adv_h2h in extrair_adversarios(h2h_events, team_id):
+            row_sel_h2h = transform_selecao(_team_minimo(adv_h2h))
+            print("adversario h2h transformado:", row_sel_h2h)
+            print("adversario h2h salvo:", upsert_selecao(row_sel_h2h))
+
+        for event in h2h_events:
+            row_h2h = transform_h2h(event, team_id)
+            print("h2h transformado:", row_h2h)
+            print("h2h salvo:", upsert_h2h(row_h2h))
+
+
+if __name__ == "__main__":
+    with httpx.Client() as client:
+
+        # ── Dados globais — carregados uma única vez ───────────────────────────
+        print("=" * 60)
+        print("=== Carregando dados globais (times + power ranking) ===")
+        print("=" * 60)
+
+        season_id = collector.get_wc_2026_season_id(client)
+        teams = collector.get_wc_teams(client, season_id)
+
+        # Localizar Cabo Verde e Arábia Saudita na lista de times da Copa
+        cabo_verde = next(
+            t for t in teams
+            if any(kw in t.get("name", "") for kw in ("Cape Verde", "Cabo Verde"))
+        )
+        arabia_saudita = next(
+            t for t in teams
+            if any(kw in t.get("name", "") for kw in ("Saudi Arabia", "Arábia Saudita", "Arabia Saudita"))
+        )
+        print(f"Cabo Verde encontrado: id={cabo_verde['id']} nome={cabo_verde['name']}")
+        print(f"Arábia Saudita encontrada: id={arabia_saudita['id']} nome={arabia_saudita['name']}")
+
+        # Power ranking — carregado uma vez e compartilhado entre os dois times
+        rounds = collector.get_power_ranking_rounds(client)
+        round_meta = next(r for r in rounds if r["id"] == POWER_RANKING_ROUND_ID)
+        rankings = collector.get_power_ranking_round(client, POWER_RANKING_ROUND_ID)
+        print(f"Power ranking round {POWER_RANKING_ROUND_ID} carregado: {len(rankings)} times.")
+
+        # ── Pipeline completo: Cabo Verde ────────────────────────────────────────
+        print(f"\n{'*' * 60}")
+        print("*** PROCESSANDO: CABO VERDE ***")
+        print(f"{'*' * 60}")
+        processar_time(
+            client=client,
+            team=cabo_verde,
+            rankings=rankings,
+            round_id=POWER_RANKING_ROUND_ID,
+            round_meta=round_meta,
+            num_matches=NUM_MATCHES,
+            label="Cabo Verde",
+        )
+
+        # ── Pipeline completo: Arábia Saudita ────────────────────────────────────
+        print(f"\n{'*' * 60}")
+        print("*** PROCESSANDO: ARÁBIA SAUDITA ***")
+        print(f"{'*' * 60}")
+        processar_time(
+            client=client,
+            team=arabia_saudita,
+            rankings=rankings,
+            round_id=POWER_RANKING_ROUND_ID,
+            round_meta=round_meta,
+            num_matches=NUM_MATCHES,
+            label="Arábia Saudita",
+        )
+
+    print("\n" + "=" * 60)
+    print("=== Teste v9 concluído ===")
+    print("=" * 60)
