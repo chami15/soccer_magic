@@ -76,3 +76,16 @@ RETURNING *;
 
 --QUERY: select_by_partida
 SELECT * FROM fato_estatistica_selecao_partida WHERE partida_id = %s;
+
+--QUERY: select_by_selecao
+SELECT
+  e.*,
+  p.tipo,
+  p.status,
+  p.data_partida,
+  p.selecao_home_id,
+  p.selecao_away_id
+FROM fato_estatistica_selecao_partida e
+JOIN fato_partida p ON p.id = e.partida_id
+WHERE e.selecao_id = %s AND p.status = 'finished'
+ORDER BY p.data_partida DESC;
