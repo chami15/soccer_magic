@@ -4,9 +4,10 @@ Converte 1 evento de partida do Sofascore (collector.get_team_recent_matches
 ou equivalente) na linha esperada por persisters/partida.py.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 WC_TOURNAMENT_ID = 16
+_EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
 
 
 def transform_partida(match: dict) -> dict:
@@ -40,6 +41,8 @@ def transform_partida(match: dict) -> dict:
         "tipo": "Copa" if tournament_id == WC_TOURNAMENT_ID else "Amistoso",
         "grupo": tournament.get("groupName"),
         "rodada": match.get("roundInfo", {}).get("round"),
-        "data_partida": datetime.fromtimestamp(match["startTimestamp"], tz=timezone.utc).date().isoformat(),
+        # timedelta a partir do epoch em vez de datetime.fromtimestamp: evita
+        # OSError 22 no Windows para timestamps fora do range suportado pela libc.
+        "data_partida": (_EPOCH + timedelta(seconds=match["startTimestamp"])).date().isoformat(),
         "cidade": match.get("venue", {}).get("city", {}).get("name"),
     }

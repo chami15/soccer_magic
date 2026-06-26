@@ -12,7 +12,9 @@ retorna nota de desempenho separada (mesma situacao do performance_rating
 em estatistica.py).
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+
+_EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
 
 
 def transform_h2h(event: dict, selecao_a_id: int) -> dict:
@@ -40,7 +42,10 @@ def transform_h2h(event: dict, selecao_a_id: int) -> dict:
 
     data_partida = None
     if event.get("startTimestamp"):
-        data_partida = datetime.fromtimestamp(event["startTimestamp"], tz=timezone.utc).date().isoformat()
+        # timedelta a partir do epoch em vez de datetime.fromtimestamp: a libc do
+        # Windows rejeita (OSError 22) timestamps anteriores a 1970, e o H2H traz
+        # confrontos historicos antigos que caem nesse caso.
+        data_partida = (_EPOCH + timedelta(seconds=event["startTimestamp"])).date().isoformat()
 
     return {
         "id": event["id"],
