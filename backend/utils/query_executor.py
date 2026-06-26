@@ -1,3 +1,5 @@
+import psycopg2
+
 from utils.db import Database
 from utils.sql_manager import sql_manager
 
@@ -15,26 +17,34 @@ def executar_query(
     kwargs    → variáveis {var} interpoladas no template (use só com valores internos)
     returning → faz commit e retorna as linhas do RETURNING (INSERT/UPDATE/DELETE)
     """
-    with Database(sufix=connection) as conn:
-        query_sql = sql_manager.load_query(query_name, **kwargs)
-        conn.execute(query_sql, params)
+    query_sql = sql_manager.load_query(query_name, **kwargs)
 
-        if returning:
-            rows = conn.fetchall()
-            conn.commit()
-            if not rows:
-                return []
-            columns = [desc[0] for desc in conn.get_cur().description]
-            return [dict(zip(columns, row)) for row in rows]
+    # uma retentativa com conexao nova: conexoes ociosas do pool podem cair
+    # (ex.: timeout do pooler do Supabase) entre uma query e outra.
+    for tentativa in range(2):
+        try:
+            with Database(sufix=connection) as conn:
+                conn.execute(query_sql, params)
 
-        if commit:
-            rows_affected = conn.get_cur().rowcount
-            conn.commit()
-            return rows_affected
+                if returning:
+                    rows = conn.fetchall()
+                    conn.commit()
+                    if not rows:
+                        return []
+                    columns = [desc[0] for desc in conn.get_cur().description]
+                    return [dict(zip(columns, row)) for row in rows]
 
-        rows = conn.fetchall()
-        if not rows:
-            return []
+                if commit:
+                    rows_affected = conn.get_cur().rowcount
+                    conn.commit()
+                    return rows_affected
 
-        columns = [desc[0] for desc in conn.get_cur().description]
-        return [dict(zip(columns, row)) for row in rows]
+                rows = conn.fetchall()
+                if not rows:
+                    return []
+
+                columns = [desc[0] for desc in conn.get_cur().description]
+                return [dict(zip(columns, row)) for row in rows]
+        except (psycopg2.OperationalError, psycopg2.InterfaceError):
+            if tentativa == 1:
+                raise

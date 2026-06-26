@@ -56,6 +56,12 @@ def _get_pool(sufix: str | None) -> psycopg2_pool.ThreadedConnectionPool:
                 database=cfg["database"],
                 user=cfg["user"],
                 password=cfg["password"],
+                # evita que a conexao seja derrubada por inatividade durante
+                # os intervalos em que o pipeline esta so fazendo chamadas HTTP
+                keepalives=1,
+                keepalives_idle=30,
+                keepalives_interval=10,
+                keepalives_count=5,
             )
         return _pools[key]
 
@@ -88,7 +94,11 @@ class PostgreConn:
         if self.cur:
             self.cur.close()
         if self.pool and self.conn:
-            self.pool.putconn(self.conn)
+            # se a conexao caiu (closed != 0), descarta em vez de devolver
+            # pro pool — devolver uma conexao morta contaminaria a proxima
+            # query que a reutilizasse com o mesmo erro.
+            esta_quebrada = self.conn.closed != 0
+            self.pool.putconn(self.conn, close=esta_quebrada)
         self.cur = None
         self.conn = None
 
