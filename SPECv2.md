@@ -22,66 +22,8 @@
 
 Esta especificação é o guia técnico canônico do Soccer Magic. O [PRDv2.md](./PRDv2.md) define o "o quê" e o "por quê". Este SPECv2 define o "como".
 
-**Dois princípios inegociáveis:**
+**Princípio inegociável:**
 1. **Dados corretos acima de tudo** — um dado errado é pior que nenhum dado
-2. **Trabalho em equipe de agentes** — toda implementação usa os agentes da pasta `AGENTS/`
-
----
-
-## 1. PROTOCOLO OBRIGATÓRIO DE AGENTES
-
-> **Claude do terminal do VS Code: você DEVE usar os agentes da pasta `AGENTS/` para implementar este projeto. Nenhuma fase pode ser implementada sem o agente correspondente ativo.**
-
-A pasta `AGENTS/` contém 6 subagentes especializados que trabalham em equipe:
-
-| Arquivo | Quando ativar |
-|---|---|
-| `AGENTS/soccer-orchestrator.md` | **Sempre primeiro** — coordena todas as fases e agentes |
-| `AGENTS/soccer-database-architect.md` | Fase 1: criar schema Supabase via MCP |
-| `AGENTS/soccer-pipeline-engineer.md` | Fase 2: implementar pipeline Python (scraping Sofascore) |
-| `AGENTS/soccer-data-validator.md` | Após cada fase: validar integridade dos dados |
-| `AGENTS/soccer-frontend-developer.md` | Fase 3: implementar frontend Next.js responsivo |
-| `AGENTS/soccer-qa-engineer.md` | Após cada módulo: testes e qualidade |
-
-### Ordem de execução obrigatória
-
-```
-FASE 1 — Infraestrutura
-  [soccer-orchestrator] coordena:
-    1. [soccer-database-architect] → criar schema no Supabase via MCP
-    2. [soccer-data-validator]     → verificar 4 tabelas criadas corretamente
-    ✅ Checkpoint: tabelas teams, team_stats, match_log, pipeline_runs existem
-
-FASE 2 — Pipeline Python (Sofascore scraping)
-  [soccer-orchestrator] coordena:
-    1. [soccer-pipeline-engineer] → implementar pipeline completo
-    2. [soccer-qa-engineer]       → testes de window.py e transformer.py
-    3. [soccer-data-validator]    → validar 7 cenários §7.3 do PRDv2
-    ✅ Checkpoint: pipeline roda com ≥1 seleção real, dados no Supabase
-
-FASE 3 — Frontend Responsivo
-  [soccer-orchestrator] coordena:
-    1. [soccer-frontend-developer] → implementar 4 telas (mobile + tablet + desktop)
-    2. [soccer-qa-engineer]        → validar responsividade e dados→UI
-    ✅ Checkpoint: localhost:3000 exibe dados reais em 375px, 768px e 1280px
-
-FASE 4 — Integração final
-  [soccer-orchestrator] coordena:
-    1. Pipeline completo (48 seleções via Sofascore)
-    2. [soccer-data-validator] → auditoria de 5 seleções
-    3. [soccer-qa-engineer]    → checklist final
-    ✅ Produto pronto
-```
-
-### Como ativar um agente
-
-```bash
-# No terminal do VS Code com Claude Code:
-claude --agent AGENTS/soccer-orchestrator.md
-
-# Ou mencionar o agente diretamente na conversa:
-# "Use o agente soccer-pipeline-engineer para implementar o collector.py"
-```
 
 ---
 
@@ -102,7 +44,7 @@ claude --agent AGENTS/soccer-orchestrator.md
 
 ### Variáveis de ambiente
 
-**`pipeline/.env`** (nunca commitar — incluir no .gitignore):
+**`backend/pipeline/.env`** (nunca commitar — incluir no .gitignore):
 ```bash
 SUPABASE_URL=<url do projeto Supabase>
 SUPABASE_SERVICE_KEY=<service_role key — não usar anon key no pipeline>
@@ -135,65 +77,58 @@ Ferramentas MCP obrigatórias:
 Soccer_Magic/
 ├── PRDv2.md                       ← documento de produto (referência)
 ├── SPECv2.md                      ← este arquivo (canônico)
-├── AGENTS/                        ← subagentes especializados (usar obrigatoriamente)
-│   ├── soccer-orchestrator.md
-│   ├── soccer-pipeline-engineer.md
-│   ├── soccer-database-architect.md
-│   ├── soccer-frontend-developer.md
-│   ├── soccer-data-validator.md
-│   └── soccer-qa-engineer.md
 │
-├── pipeline/                      ← ETL Python (scraping Sofascore)
-│   ├── main.py                    ← orquestrador: collector → window → transformer → persistence
-│   ├── collector.py               ← scraping da API interna do Sofascore
-│   ├── window.py                  ← algoritmo sliding window §7.2 (isolado e testável)
-│   ├── transformer.py             ← cálculo de médias, derivados, forma, tendência
-│   ├── persistence.py             ← upserts no Supabase via supabase-py
+├── backend/
 │   ├── requirements.txt
-│   └── tests/
-│       ├── __init__.py
-│       ├── test_window.py         ← 100% cobertura dos 7 cenários §7.3
-│       ├── test_transformer.py    ← fórmulas de médias e indicadores
-│       └── fixtures/              ← mocks de respostas do Sofascore
+│   ├── pipeline/                  ← ETL Python (scraping Sofascore)
+│   │   ├── main.py                ← orquestrador: collector → window → transformer → persistence
+│   │   ├── collector.py           ← scraping da API interna do Sofascore
+│   │   ├── window.py              ← algoritmo sliding window §7.2 (isolado e testável)
+│   │   ├── transformer.py         ← cálculo de médias, derivados, forma, tendência
+│   │   ├── persistence.py         ← upserts no Supabase via supabase-py
+│   │   └── tests/
+│   │       ├── __init__.py
+│   │       ├── test_window.py     ← 100% cobertura dos 7 cenários §7.3
+│   │       ├── test_transformer.py ← fórmulas de médias e indicadores
+│   │       └── fixtures/          ← mocks de respostas do Sofascore
+│   └── supabase/
+│       └── migrations/
+│           └── 001_initial.sql    ← schema completo (referência; aplicar via MCP)
 │
-├── app/                           ← Next.js 14 App Router
-│   ├── layout.tsx                 ← RootLayout: fontes, nav responsiva
-│   ├── (main)/
-│   │   ├── page.tsx               ← /  Lista de seleções por grupo
-│   │   ├── teams/[id]/page.tsx    ← /teams/[id] Ficha da seleção
-│   │   ├── simulate/page.tsx      ← /simulate Comparativo
-│   │   └── pipeline/page.tsx      ← /pipeline Status e log
-│   └── api/
-│       └── pipeline/route.ts      ← POST → dispara pipeline Python
+├── frontend/
+│   ├── app/                       ← Next.js 14 App Router
+│   │   ├── layout.tsx             ← RootLayout: fontes, nav responsiva
+│   │   ├── (main)/
+│   │   │   ├── page.tsx           ← /  Lista de seleções por grupo
+│   │   │   ├── teams/[id]/page.tsx ← /teams/[id] Ficha da seleção
+│   │   │   ├── simulate/page.tsx  ← /simulate Comparativo
+│   │   │   └── pipeline/page.tsx  ← /pipeline Status e log
+│   │   └── api/
+│   │       └── pipeline/route.ts  ← POST → dispara pipeline Python (../backend/pipeline)
+│   ├── components/
+│   │   ├── ui/
+│   │   │   ├── KpiCard.tsx
+│   │   │   ├── FormBadge.tsx
+│   │   │   ├── WindowBadge.tsx
+│   │   │   ├── ProgressBar.tsx
+│   │   │   └── DoubleBar.tsx
+│   │   ├── TeamCard.tsx
+│   │   ├── TeamStats.tsx
+│   │   ├── MatchHistory.tsx
+│   │   ├── SimulateView.tsx
+│   │   ├── PipelineStatus.tsx
+│   │   ├── BottomNav.tsx          ← mobile + tablet
+│   │   └── SideNav.tsx            ← desktop (lg:)
+│   ├── lib/
+│   │   ├── supabase.ts            ← createServerClient + createBrowserClient
+│   │   ├── types.ts               ← tipos de domínio
+│   │   └── database.types.ts      ← gerado pelo MCP Supabase
+│   ├── public/                    ← ícones e SVGs estáticos
+│   ├── tailwind.config.ts
+│   ├── next.config.mjs
+│   └── package.json
 │
-├── components/
-│   ├── ui/
-│   │   ├── KpiCard.tsx
-│   │   ├── FormBadge.tsx
-│   │   ├── WindowBadge.tsx
-│   │   ├── ProgressBar.tsx
-│   │   └── DoubleBar.tsx
-│   ├── TeamCard.tsx
-│   ├── TeamStats.tsx
-│   ├── MatchHistory.tsx
-│   ├── SimulateView.tsx
-│   ├── PipelineStatus.tsx
-│   ├── BottomNav.tsx              ← mobile + tablet
-│   └── SideNav.tsx                ← desktop (lg:)
-│
-├── lib/
-│   ├── supabase.ts                ← createServerClient + createBrowserClient
-│   ├── types.ts                   ← tipos de domínio
-│   └── database.types.ts          ← gerado pelo MCP Supabase
-│
-├── supabase/
-│   └── migrations/
-│       └── 001_initial.sql        ← schema completo (referência; aplicar via MCP)
-│
-├── tailwind.config.ts
-├── next.config.ts
-├── package.json
-└── .gitignore                     ← incluir: .env, .env.local, pipeline/.env
+└── .gitignore                     ← incluir: .env, .env.local, backend/pipeline/.env
 ```
 
 ---
@@ -599,7 +534,7 @@ const config: Config = {
 export default config
 ```
 
-### 6.3 Layout raiz responsivo (`app/layout.tsx`)
+### 6.3 Layout raiz responsivo (`frontend/app/layout.tsx`)
 
 ```tsx
 // Mobile/tablet: padding-bottom para BottomNav
@@ -845,7 +780,6 @@ npm run dev    # localhost:3000
 ## 11. REFERÊNCIAS
 
 - [PRDv2.md](./PRDv2.md) — documento de produto
-- [AGENTS/soccer-orchestrator.md](./AGENTS/soccer-orchestrator.md) — ponto de entrada obrigatório
 - Sofascore web: `https://www.sofascore.com/pt/copa-do-mundo/`
 - Supabase JS docs: `https://supabase.com/docs/reference/javascript`
 - Next.js App Router: `https://nextjs.org/docs/app`
@@ -853,4 +787,4 @@ npm run dev    # localhost:3000
 
 ---
 
-*SPECv2 — Soccer Magic. Implementação pelo Claude Code no terminal do VS Code usando os agentes da pasta `AGENTS/`.*
+*SPECv2 — Soccer Magic.*
