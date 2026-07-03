@@ -120,58 +120,58 @@ AVALIACOES = [
     },
     {
         "dimensao": "Pipeline de ingestão (orquestração)",
-        "nota": 6.5,
+        "nota": 8.0,
         "descricao": (
-            "Os scripts test_pipeline_basicovN cobrem o fluxo end-to-end e "
-            "servem como orquestrador manual funcional. A partir da v11 têm "
-            "tratamento de erro por time e por partida com resumo final. "
-            "A ordem de inserção respeita as FKs (dim antes de fato)."
+            "pipeline/orquestrador.py centraliza processar_time() e "
+            "processar_partida_futura() — eliminando a duplicação dos 12 "
+            "scripts anteriores. pipeline_diario.py descobre automaticamente "
+            "os jogos de amanhã via get_tournament_next_events, persiste "
+            "o calendário completo da Copa (todas as partidas futuras) e "
+            "roda o pipeline de ingestão histórica para cada seleção. "
+            "Pronto para agendar via cron ou GitHub Actions."
         ),
         "falta": (
-            "Não há orquestrador automatizado (scheduler, DAG, cron). Cada "
-            "script é uma cópia quase idêntica da anterior — o padrão "
-            "processar_time() deveria estar em um módulo compartilhado que "
-            "os scripts apenas importam, passando a lista de times. Sem "
-            "idempotência garantida no nível de execução (re-rodar o mesmo "
-            "script pode gerar chamadas HTTP redundantes). Sem log estruturado "
-            "(só print)."
+            "Sem log estruturado (só print — sem arquivo de log, sem níveis "
+            "INFO/WARNING/ERROR). Os scripts v4-v12 ainda carregam processar_time() "
+            "copiada internamente em vez de importar do orquestrador. "
+            "Sem idempotência no nível HTTP: re-executar o pipeline faz "
+            "chamadas redundantes ao Sofascore para dados que já estão no banco."
         ),
     },
     {
         "dimensao": "API / Resolvers / Routers",
-        "nota": 6.0,
+        "nota": 7.5,
         "descricao": (
-            "Padrão resolver→router bem definido e consistente com o projeto "
-            "de referência. Todos os endpoints retornam JSON estruturado com "
-            "metadados (total, selecao_id). O resolver de estatísticas é o "
-            "mais rico: 30+ campos calculados com pandas, janela de jogos "
-            "priorizando Copa, sequência de forma, tendência de gols."
+            "7 grupos de endpoints cobertos: estatísticas de seleção, partidas "
+            "(lista + detalhe), jogadores, H2H, power ranking, calendário e "
+            "agente de análise. O endpoint GET /api/agente/analise/{partida_id} "
+            "invoca o agente LLM com tools estatísticas e retorna JSON com "
+            "previsão de placar, análise narrativa e 3 bilhetes diversificados."
         ),
         "falta": (
-            "Ainda sem autenticação/autorização nos endpoints (qualquer um "
-            "pode chamar). Sem paginação nos endpoints de lista. Sem "
-            "versionamento de API (/v1/...). Sem documentação OpenAPI além "
-            "do gerado automático pelo FastAPI. goal_distribution_summary e "
-            "tournament_overall_stats retornam sempre None no resolver de "
-            "estatísticas. Sem endpoint de seleção individual (GET "
-            "/api/selecoes/{id} retornando nome, grupo, ranking)."
+            "Sem autenticação/autorização (endpoints públicos). Sem paginação "
+            "nos endpoints de lista. Sem versionamento (/v1/...). "
+            "goal_distribution_summary e tournament_overall_stats ainda retornam "
+            "None no resolver de estatísticas. Sem endpoint GET /api/selecoes/{id} "
+            "com dados básicos da seleção (nome, grupo, ranking FIFA)."
         ),
     },
     {
         "dimensao": "Organização e estrutura de código",
-        "nota": 8.0,
+        "nota": 8.5,
         "descricao": (
-            "Separação clara entre camadas: collector / transformers / "
-            "persisters / resolvers / routers / utils / sql. Cada arquivo "
-            "tem responsabilidade única. Queries SQL nomeadas em arquivos "
-            ".sql separados do Python, carregadas via SQLManager com cache. "
-            "Pipeline legado isolado em _legado/ sem poluir o caminho ativo."
+            "Separação limpa em 7 camadas: collector / transformers / persisters "
+            "/ resolvers / routers / utils / sql / agente. O módulo agente/ "
+            "tem separação interna exemplar: probabilidades.py (math pura), "
+            "tools.py (@tool com Pydantic), guardrails.py (middleware), "
+            "agente.py (orquestração). Pipeline legado em _legado/. "
+            "requirements.txt atualizado com LangChain."
         ),
         "falta": (
-            "Sem __init__.py exportando as funções públicas de cada pacote "
-            "(importações ficam longas). Sem CLAUDE.md ou README técnico "
-            "descrevendo a arquitetura para novos desenvolvedores. Falta "
-            "um requirements.txt ou pyproject.toml completo e atualizado."
+            "Sem __init__.py exportando funções públicas dos pacotes. "
+            "Scripts v4-v12 não foram migrados para importar do orquestrador "
+            "(código duplicado ainda presente). Sem README técnico descrevendo "
+            "a arquitetura para novos desenvolvedores."
         ),
     },
     {
@@ -195,39 +195,41 @@ AVALIACOES = [
     },
     {
         "dimensao": "Funcionalidade entregue",
-        "nota": 7.0,
+        "nota": 8.0,
         "descricao": (
-            "Pipeline de ingestão funcional cobrindo 24 seleções (scripts "
-            "v1-v12). API com 6 grupos de endpoints: estatísticas de seleção, "
-            "partidas (lista + detalhe), jogadores, H2H, power ranking e "
-            "calendário. O resolver de estatísticas agrega 30+ métricas "
-            "relevantes para análise de Copa do Mundo."
+            "Pipeline diário automatizado que descobre jogos de amanhã, "
+            "persiste o calendário completo da Copa e processa as seleções. "
+            "Agente de análise com modelo Poisson (Dixon-Coles simplificado), "
+            "5 tools com guardrails (max 10 calls, @wrap_tool_call), "
+            "GPT-4o-mini gerando análise narrativa + 3 bilhetes classificados "
+            "semanticamente (baixo/médio/alto risco). 7 grupos de endpoints REST."
         ),
         "falta": (
-            "Frontend não conectado à nova API ainda (usa tabelas legadas "
-            "que não existem mais no banco atual). Sem endpoint de comparação "
-            "direta entre duas seleções (que seria o caso de uso central do "
-            "projeto). Dados de 36 das 48 seleções da Copa ainda não foram "
-            "ingeridos (apenas os times dos scripts v1-v12 foram processados)."
+            "Frontend ainda desconectado da nova API. Sem cache no endpoint "
+            "do agente (cada clique re-executa o LLM). Sem endpoint de "
+            "comparação direta entre duas seleções (caso de uso central). "
+            "Dados de ~24 das 48 seleções ingeridos — pipeline_diario.py "
+            "resolve isso progressivamente ao rodar diariamente."
         ),
     },
     {
         "dimensao": "Aproveitamento dos dados disponíveis",
-        "nota": 6.0,
+        "nota": 7.5,
         "descricao": (
-            "Os dados coletados (goal distributions, overall statistics do "
-            "torneio) existem no collector mas não chegam à API — o resolver "
-            "retorna None nesses campos. O H2H tem dados ricos de histórico "
-            "mas o resolver só expõe contagem de vitórias sem análise. "
-            "Performance points do Sofascore são coletados mas não aparecem "
-            "na resposta da API."
+            "O agente usa ativamente estatísticas, H2H, power ranking e o "
+            "modelo Poisson para calcular probabilidades de 1X2, over/under "
+            "1.5/2.5/3.5/4.5, BTTS, escanteios e cartões. O resolver de "
+            "estatísticas expõe 30+ métricas calculadas via pandas com "
+            "janela priorizada (Copa > amistoso). Performance rating do "
+            "Sofascore integrado no pipeline de ingestão."
         ),
         "falta": (
-            "Implementar goal_distribution_summary e tournament_overall_stats "
-            "no resolver. Expor performance_rating nos endpoints de partida. "
-            "Criar endpoint de comparação head-to-head com estatísticas "
-            "calculadas de ambas as seleções lado a lado. Aproveitar "
-            "performance points já coletados no pipeline."
+            "goal_distribution_summary e tournament_overall_stats ainda "
+            "retornam None (dados existem no collector mas não chegam ao "
+            "resolver nem ao agente). Sem cache de análise do agente: "
+            "re-processa tudo a cada chamada. Endpoint de H2H retorna dados "
+            "brutos mas sem análise calculada (% de vitórias, gols médios "
+            "nos confrontos, tendência recente)."
         ),
     },
 ]
@@ -235,7 +237,9 @@ AVALIACOES = [
 
 def main() -> None:
     titulo("SOCCER MAGIC — AVALIAÇÃO DO BACKEND")
-    print(f"\n  Projeto: Soccer Magic | Data da avaliação: 2026-07-03")
+    import datetime
+    data = datetime.date.today().strftime("%Y-%m-%d")
+    print(f"\n  Projeto: Soccer Magic | Data da avaliação: {data}")
     print(f"  Avaliador: agente interno de qualidade")
 
     soma = sum(a["nota"] for a in AVALIACOES)
@@ -253,12 +257,12 @@ def main() -> None:
     nota_linha("Média ponderada", media)
     print()
     detalhe(
-        f"Nota geral: {media:.2f}/10. O backend tem uma base sólida de "
-        "coleta e modelagem, com o pipeline de ingestão funcional e uma "
-        "API em construção com boa separação de camadas. Os maiores gaps "
-        "são a ausência de testes automatizados, a não conexão do frontend "
-        "com a nova API, e o aproveitamento incompleto dos dados já "
-        "disponíveis no banco."
+        f"Nota geral: {media:.2f}/10. O backend evoluiu significativamente: "
+        "pipeline diário automatizado, agente LLM com modelo Poisson e "
+        "guardrails, 7 grupos de endpoints REST e orquestrador compartilhado "
+        "eliminando duplicação. O maior gap que puxa a nota pra baixo continua "
+        "sendo a ausência de testes automatizados (3.5/10). Conectar o frontend "
+        "à nova API e adicionar cache no agente são os próximos passos de maior impacto."
     )
     print()
 
