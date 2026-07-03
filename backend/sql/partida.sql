@@ -54,3 +54,15 @@ RETURNING *;
 
 --QUERY: select_by_id
 SELECT * FROM fato_partida WHERE id = %s;
+
+--QUERY: select_proximas
+SELECT
+  p.*,
+  h.nome AS selecao_home_nome,
+  a.nome AS selecao_away_nome
+FROM fato_partida p
+LEFT JOIN dim_selecao h ON h.id = p.selecao_home_id
+LEFT JOIN dim_selecao a ON a.id = p.selecao_away_id
+WHERE p.status != 'finished'
+ORDER BY p.data_partida ASC
+LIMIT %s;

@@ -40,3 +40,6 @@ RETURNING *;
 --QUERY: select_by_id
 SELECT * FROM dim_jogador WHERE id = %s;
 
+--QUERY: select_by_selecao
+SELECT * FROM dim_jogador WHERE selecao_id = %s ORDER BY posicao, nome;
+
