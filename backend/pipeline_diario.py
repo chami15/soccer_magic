@@ -65,24 +65,27 @@ def main() -> None:
         print(f"=== Executado em: {datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')} ===")
         print("=" * 60)
 
-        # ── 1. Descobrir jogos de amanhã ──────────────────────────────────────
+        # ── 1. Descobrir todos os próximos jogos da Copa ──────────────────────
         print("\nBuscando próximos eventos da Copa...")
         todos_proximos = collector.get_tournament_next_events(client)
         jogos_amanha = filtrar_jogos_amanha(todos_proximos)
 
-        if not jogos_amanha:
-            print("Nenhum jogo encontrado para amanhã. Encerrando.")
+        print(f"{len(todos_proximos)} jogo(s) futuros encontrados no calendário da Copa.")
+        if not todos_proximos:
+            print("Nenhum jogo futuro encontrado. Encerrando.")
             return
-
-        print(f"\n{len(jogos_amanha)} jogo(s) encontrado(s) para amanhã:")
-        for j in jogos_amanha:
-            ts = j.get("startTimestamp", 0)
-            hora = datetime.datetime.utcfromtimestamp(ts).strftime("%H:%M UTC")
-            print(
-                f"  id={j['id']} | "
-                f"{j.get('homeTeam', {}).get('name', '?')} x "
-                f"{j.get('awayTeam', {}).get('name', '?')} | {hora}"
-            )
+        if not jogos_amanha:
+            print("Nenhum jogo encontrado para amanhã — calendário será atualizado mesmo assim.")
+        else:
+            print(f"\n{len(jogos_amanha)} jogo(s) encontrado(s) para amanhã:")
+            for j in jogos_amanha:
+                ts = j.get("startTimestamp", 0)
+                hora = datetime.datetime.utcfromtimestamp(ts).strftime("%H:%M UTC")
+                print(
+                    f"  id={j['id']} | "
+                    f"{j.get('homeTeam', {}).get('name', '?')} x "
+                    f"{j.get('awayTeam', {}).get('name', '?')} | {hora}"
+                )
 
         # ── 2. Carregar dados globais (power ranking) ─────────────────────────
         print("\nCarregando power ranking...")
@@ -98,20 +101,22 @@ def main() -> None:
         rankings = collector.get_power_ranking_round(client, round_id)
         print(f"Power ranking round {round_id} carregado: {len(rankings)} times.")
 
-        # ── 3. Persistir as partidas futuras no banco ─────────────────────────
+        # ── 3. Persistir TODOS os jogos futuros no calendário ────────────────
         print(f"\n{'=' * 60}")
-        print("=== Persistindo partidas futuras em fato_partida ===")
+        print("=== Persistindo calendário completo em fato_partida ===")
         print("=" * 60)
-        for jogo in jogos_amanha:
+        calendario_ok = 0
+        for jogo in todos_proximos:
             resultado = processar_partida_futura(client, jogo)
             if resultado:
-                print(
-                    f"  ✓ Partida id={jogo['id']} "
-                    f"({jogo.get('homeTeam', {}).get('name')} x "
-                    f"{jogo.get('awayTeam', {}).get('name')}) persistida."
-                )
+                calendario_ok += 1
+        print(f"  {calendario_ok}/{len(todos_proximos)} partidas futuras persistidas no calendário.")
 
-        # ── 4. Pipeline completo para cada seleção ────────────────────────────
+        # ── 4. Pipeline completo para cada seleção que joga amanhã ───────────
+        if not jogos_amanha:
+            print("\nSem seleções para processar hoje. Encerrando após salvar calendário.")
+            return
+
         times = extrair_times_dos_jogos(jogos_amanha)
         print(f"\n{'=' * 60}")
         print(f"=== Processando {len(times)} seleções ===")
