@@ -8,6 +8,8 @@ import httpx
 from pipeline import collector
 from pipeline_diario import filtrar_jogos_amanha
 
+tz_utc = datetime.timezone.utc
+
 with httpx.Client() as client:
     print("Buscando próximos eventos da Copa...")
     todos = collector.get_tournament_next_events(client)
@@ -17,7 +19,6 @@ with httpx.Client() as client:
     print(f"\nTotal de jogos futuros na Copa: {len(todos)}")
     print(f"Jogos de amanha ({amanha_data}): {len(amanha)}")
 
-    tz_utc = datetime.timezone.utc
     if amanha:
         print("\nPartidas de amanha:")
         for j in amanha:

@@ -24,25 +24,17 @@ POWER_RANKING_ROUND_ID = 134
 NUM_MATCHES = 5
 
 
-def _amanha_timestamp() -> tuple[int, int]:
-    """Retorna (inicio_amanha, fim_amanha) como Unix timestamps UTC.
-    Usa a data local da máquina para determinar 'amanhã', evitando que
-    fusos negativos (ex: UTC-3) avancem o dia incorretamente."""
-    amanha = datetime.date.today() + datetime.timedelta(days=1)
-    # Constrói os limites em UTC explícito (timezone-aware) para evitar
-    # comportamento ambíguo do timestamp() em sistemas com TZ != UTC.
-    tz_utc = datetime.timezone.utc
-    inicio = int(datetime.datetime(amanha.year, amanha.month, amanha.day, 0, 0, 0, tzinfo=tz_utc).timestamp())
-    fim = int(datetime.datetime(amanha.year, amanha.month, amanha.day, 23, 59, 59, tzinfo=tz_utc).timestamp())
-    return inicio, fim
-
-
 def filtrar_jogos_amanha(eventos: list[dict]) -> list[dict]:
-    """Filtra apenas os eventos cuja startTimestamp cai dentro de amanhã (UTC)."""
-    inicio, fim = _amanha_timestamp()
+    """Filtra eventos cujo startTimestamp corresponde a amanhã no fuso local da máquina.
+
+    Compara a data local derivada do timestamp com 'amanhã local', evitando
+    que jogos às 21h+ (que viram 00h UTC do dia seguinte) sejam excluídos
+    quando o servidor roda em fuso negativo (ex: UTC-3 do Brasil).
+    """
+    amanha_local = datetime.date.today() + datetime.timedelta(days=1)
     return [
         e for e in eventos
-        if inicio <= e.get("startTimestamp", 0) <= fim
+        if datetime.datetime.fromtimestamp(e.get("startTimestamp", 0)).date() == amanha_local
     ]
 
 
