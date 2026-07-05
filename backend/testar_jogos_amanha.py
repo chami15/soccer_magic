@@ -17,11 +17,12 @@ with httpx.Client() as client:
     print(f"\nTotal de jogos futuros na Copa: {len(todos)}")
     print(f"Jogos de amanha ({amanha_data}): {len(amanha)}")
 
+    tz_utc = datetime.timezone.utc
     if amanha:
         print("\nPartidas de amanha:")
         for j in amanha:
             ts = j.get("startTimestamp", 0)
-            hora = datetime.datetime.utcfromtimestamp(ts).strftime("%H:%M UTC")
+            hora = datetime.datetime.fromtimestamp(ts, tz=tz_utc).strftime("%H:%M UTC")
             home = j["homeTeam"]["name"]
             away = j["awayTeam"]["name"]
             print(f"  id={j['id']} | {home} x {away} | {hora}")
@@ -30,7 +31,7 @@ with httpx.Client() as client:
         print("\nPrimeiros 5 jogos futuros (qualquer data):")
         for j in todos[:5]:
             ts = j.get("startTimestamp", 0)
-            data = datetime.datetime.utcfromtimestamp(ts).strftime("%Y-%m-%d %H:%M UTC")
+            data = datetime.datetime.fromtimestamp(ts, tz=tz_utc).strftime("%Y-%m-%d %H:%M UTC")
             home = j["homeTeam"]["name"]
             away = j["awayTeam"]["name"]
             print(f"  id={j['id']} | {home} x {away} | {data}")
