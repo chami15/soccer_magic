@@ -62,11 +62,12 @@ def main():
         print("  - O Sofascore não tem registro histórico deste confronto")
     else:
         print("\nPrimeiros 3 confrontos:")
+        from pipeline.transformers.h2h import _score
         for e in eventos[:3]:
             home_e = e.get("homeTeam", {}).get("name", "?")
             away_e = e.get("awayTeam", {}).get("name", "?")
-            h = e.get("homeScore", {}).get("current", "?")
-            a = e.get("awayScore", {}).get("current", "?")
+            h = _score(e.get("homeScore")) if e.get("homeScore") else "?"
+            a = _score(e.get("awayScore")) if e.get("awayScore") else "?"
             torneio = e.get("tournament", {}).get("name", "?")
             print(f"  {home_e} {h} x {a} {away_e} | {torneio}")
 

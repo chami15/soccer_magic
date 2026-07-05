@@ -1,10 +1,31 @@
 """
 Testes unitários — pipeline/transformers/h2h.py
 """
-from pipeline.transformers.h2h import transform_h2h, extrair_adversarios
+from pipeline.transformers.h2h import _score, transform_h2h, extrair_adversarios
 
 SELECAO_A = 10
 SELECAO_B = 20
+
+
+# ── _score: extração robusta de placar ────────────────────────────────────────
+
+def test_score_via_current():
+    assert _score({"current": 2}) == 2
+
+def test_score_via_display():
+    assert _score({"display": "3"}) == 3
+
+def test_score_via_periodos():
+    assert _score({"period1": 1, "period2": 2}) == 3
+
+def test_score_via_periodos_com_prorrogacao():
+    assert _score({"period1": 1, "period2": 1, "overtime": 1}) == 3
+
+def test_score_none_quando_vazio():
+    assert _score({}) is None
+
+def test_score_none_quando_none():
+    assert _score(None) is None
 
 
 def _event(

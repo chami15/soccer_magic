@@ -17,11 +17,31 @@ from datetime import datetime, timedelta, timezone
 _EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
 
 
+def _score(score_dict: dict | None) -> int | None:
+    """Extrai placar tentando current → display → period1+period2 (eventos antigos do Sofascore)."""
+    if not score_dict:
+        return None
+    if score_dict.get("current") is not None:
+        return score_dict["current"]
+    if score_dict.get("display") is not None:
+        try:
+            return int(score_dict["display"])
+        except (ValueError, TypeError):
+            pass
+    # Fallback: soma dos períodos
+    p1 = score_dict.get("period1") or 0
+    p2 = score_dict.get("period2") or 0
+    et = score_dict.get("overtime") or 0
+    pen = score_dict.get("penalties") or 0
+    total = p1 + p2 + et + pen
+    return total if total > 0 else None
+
+
 def transform_h2h(event: dict, selecao_a_id: int) -> dict:
     home = event["homeTeam"]
     away = event["awayTeam"]
-    home_score = event.get("homeScore", {}).get("current")
-    away_score = event.get("awayScore", {}).get("current")
+    home_score = _score(event.get("homeScore"))
+    away_score = _score(event.get("awayScore"))
 
     if home["id"] == selecao_a_id:
         selecao_b_id = away["id"]
