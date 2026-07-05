@@ -58,7 +58,7 @@ def main() -> None:
     with httpx.Client() as client:
         print("=" * 60)
         print("=== PIPELINE DIÁRIO — Soccer Magic ===")
-        print(f"=== Executado em: {datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')} ===")
+        print(f"=== Executado em: {datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M UTC')} ===")
         print("=" * 60)
 
         # ── 1. Descobrir todos os próximos jogos da Copa ──────────────────────
@@ -76,7 +76,7 @@ def main() -> None:
             print(f"\n{len(jogos_amanha)} jogo(s) encontrado(s) para amanhã:")
             for j in jogos_amanha:
                 ts = j.get("startTimestamp", 0)
-                hora = datetime.datetime.utcfromtimestamp(ts).strftime("%H:%M UTC")
+                hora = datetime.datetime.fromtimestamp(ts, tz=datetime.timezone.utc).strftime("%H:%M UTC")
                 print(
                     f"  id={j['id']} | "
                     f"{j.get('homeTeam', {}).get('name', '?')} x "

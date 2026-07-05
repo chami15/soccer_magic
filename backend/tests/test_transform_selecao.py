@@ -34,6 +34,21 @@ def test_continente_none_quando_pais_nao_mapeado():
     assert r["continente"] is None
 
 
+def test_country_como_dict_sofascore():
+    # Sofascore retorna country como dict {"name": "Brazil"}, não string
+    team = {"id": 1, "name": "Brasil", "country": {"name": "Brazil"}, "group_name": "G", "ranking_fifa": 1}
+    r = transform_selecao(team)
+    assert r["id"] == 1
+    assert r["continente"] is None  # ainda sem mapeamento, mas não deve explodir
+
+
+def test_ranking_via_campo_ranking_raw():
+    # Campo "ranking" (raw Sofascore) também é aceito como fallback
+    team = {"id": 1, "name": "Brasil", "ranking": 5}
+    r = transform_selecao(team)
+    assert r["ranking_fifa"] == 5
+
+
 def test_continente_none_quando_pais_none():
     r = transform_selecao(_team(country=None))
     assert r["continente"] is None

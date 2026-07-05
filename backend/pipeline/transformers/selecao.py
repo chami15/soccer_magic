@@ -16,10 +16,14 @@ CONTINENTE_POR_PAIS = {
 
 def transform_selecao(team: dict) -> dict:
     pais = team.get("country")
+    # Sofascore retorna country como dict {"name": "Brazil"} ou como string
+    if isinstance(pais, dict):
+        pais = pais.get("name")
     return {
         "id": team["id"],
         "nome": team["name"],
         "continente": CONTINENTE_POR_PAIS.get(pais),
         "grupo": team.get("group_name"),
-        "ranking_fifa": team.get("ranking_fifa"),
+        # Aceita tanto "ranking_fifa" (via _team_minimo) quanto "ranking" (raw Sofascore)
+        "ranking_fifa": team.get("ranking_fifa") or team.get("ranking"),
     }
