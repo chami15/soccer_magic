@@ -119,6 +119,7 @@ Retorne APENAS JSON válido, sem markdown, sem texto extra.
       "mercado": "<nome específico do mercado>",
       "pick": "<seleção>",
       "probabilidade": <float>,
+      "odd_justa": <float arredondado 2 casas — calculado como 100/probabilidade>,
       "justificativa": "<baseada em dados concretos, cite os números>"
     }}
   ],
@@ -127,20 +128,23 @@ Retorne APENAS JSON válido, sem markdown, sem texto extra.
     {{
       "risco": "baixo",
       "tipo": "simples|multipla",
+      "odd_bilhete": <float — para simples: 100/probabilidade_da_pick; para múltipla: produto das odds de cada seleção, arredondado 2 casas>,
       "selecoes": [
-        {{"mercado": "<mercado>", "pick": "<pick>", "confianca": <int 0-100>}}
+        {{"mercado": "<mercado>", "pick": "<pick>", "confianca": <int 0-100>, "odd_justa": <float>}}
       ],
       "justificativa": "<explique o raciocínio quantitativo: por que este mercado, por que este nível de risco>"
     }},
     {{
       "risco": "medio",
       "tipo": "simples|multipla",
+      "odd_bilhete": <float>,
       "selecoes": [...],
       "justificativa": "..."
     }},
     {{
       "risco": "alto",
       "tipo": "simples|multipla",
+      "odd_bilhete": <float>,
       "selecoes": [...],
       "justificativa": "..."
     }}
@@ -155,6 +159,15 @@ Retorne APENAS JSON válido, sem markdown, sem texto extra.
 - Cite os dados que embasam cada bilhete na justificativa.
 - padroes_identificados: liste de 2 a 5 padrões reais encontrados nos dados, com números.
   Ex: "Mexico avg_goals_1h=0.4 vs avg_goals_2h=1.6 — 80% dos gols saem no 2T".
+
+== CÁLCULO DE ODDS ==
+- odd_justa de uma pick = round(100 / probabilidade, 2). Ex: 70% → odd 1.43; 45% → odd 2.22.
+- odd_bilhete simples = odd_justa da única pick.
+- odd_bilhete múltipla = produto de todas as odd_justa das seleções do bilhete.
+  Ex: picks com odds 1.43 × 1.28 × 2.10 = odd_bilhete 3.84.
+- ATENÇÃO: odd_justa é a odd sem margem da casa (fair odds). As casas aplicam margem de
+  5-15%, então a odd real no mercado será sempre menor. Se a casa oferecer odd ACIMA da
+  odd_justa calculada, é uma aposta com valor positivo (edge favorável ao apostador).
 """
 
 
