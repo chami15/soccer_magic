@@ -9,9 +9,9 @@ from fastapi import HTTPException
 from agente.agente import analisar_partida
 
 
-def resolver_analise_partida(partida_id: int) -> dict:
+async def resolver_analise_partida(partida_id: int) -> dict:
     try:
-        return analisar_partida(partida_id)
+        return await analisar_partida(partida_id)
     except RuntimeError as exc:
         raise HTTPException(status_code=500, detail=str(exc))
     except Exception as exc:

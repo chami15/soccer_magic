@@ -132,9 +132,9 @@ def get_agente():
     return _agente
 
 
-def analisar_partida(partida_id: int) -> dict:
+async def analisar_partida(partida_id: int) -> dict:
     """
-    Ponto de entrada público. Invoca o agente e retorna o dict JSON final.
+    Ponto de entrada público. Invoca o agente de forma assíncrona e retorna o dict JSON final.
     Lança RuntimeError se o agente não produzir JSON válido.
     """
     agente = get_agente()
@@ -147,7 +147,7 @@ def analisar_partida(partida_id: int) -> dict:
     )
 
     try:
-        resposta = agente.invoke(
+        resposta = await agente.ainvoke(
             {"messages": [{"role": "user", "content": mensagem}]}
         )
     except Exception as exc:
@@ -158,7 +158,6 @@ def analisar_partida(partida_id: int) -> dict:
     try:
         return json.loads(conteudo)
     except json.JSONDecodeError:
-        # Tenta extrair JSON se veio com markdown
         import re
         match = re.search(r"\{.*\}", conteudo, re.DOTALL)
         if match:

@@ -137,7 +137,7 @@ def resolver_estatisticas_selecao(selecao_id: int) -> dict:
 
     passes_pct_por_jogo = janela.apply(
         lambda linha: (linha["passes_certos"] / linha["passes_total"] * 100)
-        if linha.get("passes_total")
+        if pd.notna(linha["passes_total"]) and linha["passes_total"] > 0
         else None,
         axis=1,
     ).dropna()
