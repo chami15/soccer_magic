@@ -20,7 +20,6 @@ import httpx
 from pipeline import collector
 from pipeline.orquestrador import processar_partida_futura, processar_time
 
-POWER_RANKING_ROUND_ID = 134
 NUM_MATCHES = 5
 
 
@@ -86,13 +85,12 @@ def main() -> None:
         # ── 2. Carregar dados globais (power ranking) ─────────────────────────
         print("\nCarregando power ranking...")
         rounds = collector.get_power_ranking_rounds(client)
-        round_meta = next((r for r in rounds if r["id"] == POWER_RANKING_ROUND_ID), None)
-        if round_meta is None:
-            print(f"  ⚠  Round {POWER_RANKING_ROUND_ID} não encontrado — usando último disponível.")
-            round_meta = rounds[-1] if rounds else {}
-            round_id = round_meta.get("id", POWER_RANKING_ROUND_ID)
-        else:
-            round_id = POWER_RANKING_ROUND_ID
+        if not rounds:
+            print("  ⚠  Nenhum round de power ranking disponível. Abortando.")
+            return
+        # A API retorna os rounds em ordem decrescente — o primeiro é sempre o mais recente
+        round_meta = rounds[0]
+        round_id = round_meta["id"]
 
         rankings = collector.get_power_ranking_round(client, round_id)
         print(f"Power ranking round {round_id} carregado: {len(rankings)} times.")
