@@ -7,6 +7,8 @@ preenchem as vagas restantes. data_quality: 'insufficient' (<3), 'partial'
 (3-4), 'complete' (5).
 """
 
+import math
+
 import pandas as pd
 
 from utils.query_executor import executar_query
@@ -71,6 +73,17 @@ def _trend_goals_3v5(janela: pd.DataFrame) -> float | None:
     return round(float(media_3 - media_total), 2)
 
 
+def _safe(value) -> float | None:
+    """Converte NaN/Inf para None para garantir JSON válido."""
+    if value is None:
+        return None
+    try:
+        f = float(value)
+        return None if math.isnan(f) or math.isinf(f) else f
+    except (TypeError, ValueError):
+        return None
+
+
 def resolver_estatisticas_selecao(selecao_id: int) -> dict:
     """Calcula as estatísticas agregadas (formato team_stats) de uma seleção."""
     rows = executar_query("estatistica:select_by_selecao", params=(selecao_id,))
@@ -123,28 +136,30 @@ def resolver_estatisticas_selecao(selecao_id: int) -> dict:
         return resultado
 
     for campo, coluna in COLUNAS_MEDIA.items():
-        resultado[campo] = round(float(janela[coluna].mean()), 2) if coluna in janela else None
+        resultado[campo] = _safe(janela[coluna].mean()) if coluna in janela.columns else None
 
     total_gols = janela["gols_marcados"] + janela["gols_sofridos"]
-    resultado["over15_pct"] = round(float((total_gols >= 2).mean() * 100), 2)
-    resultado["over25_pct"] = round(float((total_gols >= 3).mean() * 100), 2)
-    resultado["over35_pct"] = round(float((total_gols >= 4).mean() * 100), 2)
-    resultado["btts_pct"] = round(
-        float(((janela["gols_marcados"] > 0) & (janela["gols_sofridos"] > 0)).mean() * 100), 2
+    resultado["over15_pct"] = _safe((total_gols >= 2).mean() * 100)
+    resultado["over25_pct"] = _safe((total_gols >= 3).mean() * 100)
+    resultado["over35_pct"] = _safe((total_gols >= 4).mean() * 100)
+    resultado["btts_pct"] = _safe(
+        ((janela["gols_marcados"] > 0) & (janela["gols_sofridos"] > 0)).mean() * 100
     )
     resultado["clean_sheets"] = int((janela["gols_sofridos"] == 0).sum())
-    resultado["over35_corners_pct"] = round(float((janela["escanteios"] >= 4).mean() * 100), 2)
+    resultado["over35_corners_pct"] = _safe(
+        (janela["escanteios"] >= 4).mean() * 100 if "escanteios" in janela.columns else None
+    )
 
     passes_pct_por_jogo = janela.apply(
         lambda linha: (linha["passes_certos"] / linha["passes_total"] * 100)
-        if pd.notna(linha["passes_total"]) and linha["passes_total"] > 0
+        if pd.notna(linha.get("passes_total")) and linha.get("passes_total", 0) > 0
         else None,
         axis=1,
     ).dropna()
-    resultado["avg_passes_pct"] = (
-        round(float(passes_pct_por_jogo.mean()), 2) if not passes_pct_por_jogo.empty else None
+    resultado["avg_passes_pct"] = _safe(
+        passes_pct_por_jogo.mean() if not passes_pct_por_jogo.empty else None
     )
 
-    resultado["trend_goals_3v5"] = _trend_goals_3v5(janela)
+    resultado["trend_goals_3v5"] = _safe(_trend_goals_3v5(janela))
 
     return resultado
