@@ -1,17 +1,10 @@
-import { createSupabaseServer } from '@/lib/supabase'
-import { SimulateView } from '@/components/SimulateView'
-import type { TeamWithStats } from '@/lib/types'
+import { loadSelectionCatalog } from '@/lib/content/catalog'
+import { CompareBoard } from '@/components/compare/CompareBoard'
 
 export const revalidate = 300
 
 export default async function SimulatePage() {
-  const supabase = createSupabaseServer()
-  const { data: teams } = await supabase
-    .from('teams')
-    .select('*, team_stats(*)')
-    .order('name', { ascending: true })
+  const teams = await loadSelectionCatalog()
 
-  const typedTeams = (teams ?? []) as unknown as TeamWithStats[]
-
-  return <SimulateView teams={typedTeams} />
+  return <CompareBoard teams={teams} />
 }

@@ -6,23 +6,23 @@ interface ProgressBarProps {
 
 export function ProgressBar({ label, value, max = 100 }: ProgressBarProps) {
   const pct = value === null || value === undefined ? 0 : Math.min((value / max) * 100, 100)
-  const glow = pct > 60
+  const showPositive = pct >= 65
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex justify-between items-center">
-        <span className="text-sm text-text-secondary">{label}</span>
-        <span className="font-mono text-sm text-text-primary">
-          {value === null || value === undefined ? '—' : `${value}%`}
-        </span>
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-sm text-muted">{label}</span>
+        <span className="font-mono text-sm text-ink">{value === null || value === undefined ? '—' : `${value}%`}</span>
       </div>
-      <div className="h-2 rounded-full bg-bg-elevated overflow-hidden">
+      <div className="h-2 overflow-hidden rounded-full bg-line/70">
         <div
           className="h-full rounded-full transition-all duration-500"
           style={{
             width: `${pct}%`,
-            background: 'linear-gradient(to right, #7C3AED, #A855F7)',
-            boxShadow: glow ? '0 0 8px #A855F740' : undefined,
+            background: showPositive
+              ? 'linear-gradient(90deg, rgba(192,76,255,0.95), rgba(224,125,255,0.95))'
+              : 'linear-gradient(90deg, rgba(150,160,180,0.65), rgba(150,160,180,0.85))',
+            boxShadow: showPositive ? '0 0 16px rgba(192,76,255,0.18)' : undefined,
           }}
         />
       </div>

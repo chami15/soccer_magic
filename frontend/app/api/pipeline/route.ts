@@ -7,9 +7,9 @@ const execAsync = promisify(exec)
 
 export async function POST() {
   try {
-    const pipelineDir = path.join(process.cwd(), '..', 'backend', 'pipeline')
-    const { stdout, stderr } = await execAsync('python main.py', {
-      cwd: pipelineDir,
+    const backendDir = path.join(process.cwd(), '..', 'backend')
+    const { stdout, stderr } = await execAsync('python pipeline_diario.py', {
+      cwd: backendDir,
       env: { ...process.env },
       timeout: 600_000, // 10 min
     })

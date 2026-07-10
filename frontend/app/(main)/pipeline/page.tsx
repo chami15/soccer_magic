@@ -1,15 +1,11 @@
-import { createSupabaseServer } from '@/lib/supabase'
-import { PipelineStatus } from '@/components/PipelineStatus'
+import { loadPipelineRuns } from '@/lib/content/pipeline'
+import { PipelineConsole } from '@/components/pipeline/PipelineConsole'
 
 export const revalidate = 60
 
 export default async function PipelinePage() {
-  const supabase = createSupabaseServer()
-  const { data: runs } = await supabase
-    .from('pipeline_runs')
-    .select('*')
-    .order('started_at', { ascending: false })
-    .limit(10)
+  const result = await Promise.allSettled([loadPipelineRuns(10)])
+  const runs = result[0].status === 'fulfilled' ? result[0].value : []
 
-  return <PipelineStatus runs={runs ?? []} />
+  return <PipelineConsole runs={runs} />
 }

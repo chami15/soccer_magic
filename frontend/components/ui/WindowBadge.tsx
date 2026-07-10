@@ -5,23 +5,16 @@ interface WindowBadgeProps {
 }
 
 export function WindowBadge({ copaCount, friendlyCount, dataQuality }: WindowBadgeProps) {
+  const qualityLabel =
+    dataQuality === 'complete' ? 'Janela completa' : dataQuality === 'partial' ? 'Janela parcial' : 'Dados insuficientes'
+
   return (
-    <div className="flex items-center gap-2 flex-wrap">
-      {copaCount > 0 && (
-        <span className="text-xs px-2 py-0.5 rounded-full bg-neon-dark/20 text-neon-light border border-neon-dark/60">
-          {copaCount} Copa
-        </span>
-      )}
-      {friendlyCount > 0 && (
-        <span className="text-xs px-2 py-0.5 rounded-full bg-text-border/30 text-text-secondary border border-text-border/40">
-          {friendlyCount} Amistoso{friendlyCount > 1 ? 's' : ''}
-        </span>
-      )}
-      {dataQuality === 'partial' && (
-        <span className="text-xs px-2 py-0.5 rounded-full bg-semantic-amber/20 text-semantic-amber border border-semantic-amber/40">
-          Parcial
-        </span>
-      )}
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="rounded-full border border-line/80 bg-paper/80 px-3 py-1 text-xs text-muted">{qualityLabel}</span>
+      <span className="rounded-full border border-accent/20 bg-accent/8 px-3 py-1 text-xs text-accent">{copaCount} Copa</span>
+      <span className="rounded-full border border-line/80 bg-paper/80 px-3 py-1 text-xs text-muted">
+        {friendlyCount} Amistoso{friendlyCount === 1 ? '' : 's'}
+      </span>
     </div>
   )
 }

@@ -1,13 +1,11 @@
 import { notFound } from 'next/navigation'
-import { createSupabaseServer } from '@/lib/supabase'
-import { TeamStats } from '@/components/TeamStats'
-import type { Database } from '@/lib/database.types'
+import { loadSelectionCatalog } from '@/lib/content/catalog'
+import { loadPlayers, loadPowerRanking, loadSelectionMatches, loadSelectionStats, loadUpcomingMatches } from '@/lib/api/backend'
+import { resolveMatchContext } from '@/lib/selection-context'
+import type { SelectionStats } from '@/lib/api/types'
+import { SelectionWorkspace } from '@/components/selection/SelectionWorkspace'
 
-type TeamRow    = Database['public']['Tables']['teams']['Row']
-type StatsRow   = Database['public']['Tables']['team_stats']['Row']
-type MatchRow   = Database['public']['Tables']['match_log']['Row']
-
-export const revalidate = 300
+export const revalidate = 180
 
 interface Props {
   params: { id: string }
@@ -15,40 +13,55 @@ interface Props {
 
 export default async function TeamPage({ params }: Props) {
   const teamId = Number(params.id)
-  if (isNaN(teamId)) notFound()
+  if (Number.isNaN(teamId)) notFound()
 
-  const supabase = createSupabaseServer()
+  const teams = await loadSelectionCatalog()
+  const team = teams.find((entry) => entry.id === teamId)
+  if (!team) notFound()
 
-  const { data: team, error: teamError } = await supabase
-    .from('teams')
-    .select<'*', TeamRow>('*')
-    .eq('id', teamId)
-    .single()
+  const teamNamesById = new Map(teams.map((entry) => [entry.id, entry.name]))
+  const selectionStatsFallback = team.team_stats as SelectionStats | null
 
-  if (teamError || !team) notFound()
-
-  const [statsResult, matchesResult] = await Promise.all([
-    supabase.from('team_stats').select<'*', StatsRow>('*').eq('team_id', teamId).single(),
-    supabase
-      .from('match_log')
-      .select<'*', MatchRow>('*')
-      .eq('team_id', teamId)
-      .eq('is_in_window', true)
-      .order('date', { ascending: false }),
+  const [statsResult, matchesResult, rankingResult, playersResult, upcomingResult] = await Promise.allSettled([
+    loadSelectionStats(teamId),
+    loadSelectionMatches(teamId),
+    loadPowerRanking(teamId),
+    loadPlayers(teamId),
+    loadUpcomingMatches(20),
   ])
 
-  const stats = statsResult.data
-  const matches = matchesResult.data ?? []
+  const stats = statsResult.status === 'fulfilled' ? statsResult.value : selectionStatsFallback
+  const matches = matchesResult.status === 'fulfilled' ? matchesResult.value.partidas : []
+  const powerRanking = rankingResult.status === 'fulfilled' ? rankingResult.value : null
+  const players = playersResult.status === 'fulfilled' ? playersResult.value.jogadores : []
+  const upcomingMatches = upcomingResult.status === 'fulfilled' ? upcomingResult.value.partidas : []
+  const matchContext = resolveMatchContext({
+    selectionId: teamId,
+    selectionName: team.name,
+    upcomingMatches,
+    historyMatches: matches,
+    teamNameById: teamNamesById,
+  })
 
   if (!stats) {
     return (
-      <div className="py-8 text-center text-text-secondary">
-        <p className="text-4xl mb-4">⚽</p>
-        <p>{team.name}</p>
-        <p className="text-sm mt-2">Estatísticas ainda não disponíveis. Execute o pipeline.</p>
+      <div className="glass-panel rounded-[2rem] p-8 text-center">
+        <p className="section-title text-xs text-accent">Selecao</p>
+        <h1 className="mt-2 font-display text-3xl font-semibold text-ink">{team.name}</h1>
+        <p className="mt-3 text-sm text-muted">Estatisticas ainda nao disponiveis para esta selecao.</p>
       </div>
     )
   }
 
-  return <TeamStats team={team} stats={stats} matches={matches} />
+  return (
+    <SelectionWorkspace
+      team={team}
+      stats={stats}
+      matches={matches}
+      teamNamesById={teamNamesById}
+      powerRanking={powerRanking}
+      players={players}
+      matchContext={matchContext}
+    />
+  )
 }
