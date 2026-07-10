@@ -32,3 +32,6 @@ RETURNING *;
 
 --QUERY: select_by_id
 SELECT * FROM dim_selecao WHERE id = %s;
+
+--QUERY: select_all
+SELECT id, nome, continente, grupo, ranking_fifa FROM dim_selecao ORDER BY grupo ASC NULLS LAST, nome ASC;

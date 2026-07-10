@@ -104,6 +104,20 @@ export function TicketPanel({ matchContext }: TicketPanelProps) {
               </div>
             </div>
 
+            {analysis.padroes_identificados?.length > 0 && (
+              <div className="rounded-3xl border border-line/80 bg-paper/90 p-4">
+                <h3 className="section-title text-xs text-muted">Padroes identificados</h3>
+                <ul className="mt-3 space-y-2">
+                  {analysis.padroes_identificados.map((pattern, index) => (
+                    <li key={index} className="flex gap-2 text-sm leading-relaxed text-ink">
+                      <span className="mt-0.5 shrink-0 text-accent">▸</span>
+                      <span>{pattern}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             <div className="space-y-3">
               <h3 className="section-title text-xs text-muted">Mercados favoritos</h3>
               <div className="space-y-3">
@@ -114,8 +128,13 @@ export function TicketPanel({ matchContext }: TicketPanelProps) {
                         <p className="font-medium text-ink">{market.mercado}</p>
                         <p className="mt-1 text-sm text-muted">{market.pick}</p>
                       </div>
-                      <div className="rounded-full border border-accent/20 bg-accent/8 px-3 py-1 text-sm font-mono text-accent">
-                        {market.probabilidade.toFixed(2)}%
+                      <div className="flex flex-col items-end gap-1">
+                        <div className="rounded-full border border-accent/20 bg-accent/8 px-3 py-1 text-sm font-mono text-accent">
+                          {market.probabilidade.toFixed(1)}%
+                        </div>
+                        {market.odd_justa != null && (
+                          <div className="text-xs font-mono text-muted">odd {market.odd_justa.toFixed(2)}</div>
+                        )}
                       </div>
                     </div>
                     <p className="mt-3 text-sm leading-relaxed text-muted">{market.justificativa}</p>
@@ -139,9 +158,16 @@ export function TicketPanel({ matchContext }: TicketPanelProps) {
                         <p className="font-display text-base font-semibold text-ink">{riskLabel(ticket.risco)}</p>
                         <p className="text-xs uppercase tracking-[0.2em] text-muted">{moneylineLabel(ticket.tipo)}</p>
                       </div>
-                      <span className="rounded-full border border-current/15 px-3 py-1 text-xs uppercase tracking-[0.18em]">
-                        {ticket.selecoes.length} selecao{ticket.selecoes.length > 1 ? 'es' : ''}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        {ticket.odd_bilhete != null && (
+                          <span className="rounded-full border border-current/25 bg-canvas/40 px-3 py-1 text-sm font-mono">
+                            @{ticket.odd_bilhete.toFixed(2)}
+                          </span>
+                        )}
+                        <span className="rounded-full border border-current/15 px-3 py-1 text-xs uppercase tracking-[0.18em]">
+                          {ticket.selecoes.length} selecao{ticket.selecoes.length > 1 ? 'es' : ''}
+                        </span>
+                      </div>
                     </div>
 
                     <div className="mt-4 space-y-2">
@@ -152,8 +178,13 @@ export function TicketPanel({ matchContext }: TicketPanelProps) {
                               <p className="text-sm font-medium text-ink">{selection.mercado}</p>
                               <p className="mt-1 text-sm text-muted">{selection.pick}</p>
                             </div>
-                            <div className="rounded-full border border-current/15 px-3 py-1 text-sm font-mono text-ink">
-                              {selection.confianca}%
+                            <div className="flex flex-col items-end gap-1">
+                              <div className="rounded-full border border-current/15 px-3 py-1 text-sm font-mono text-ink">
+                                {selection.confianca}%
+                              </div>
+                              {selection.odd_justa != null && (
+                                <div className="text-xs font-mono text-muted">odd {selection.odd_justa.toFixed(2)}</div>
+                              )}
                             </div>
                           </div>
                         </div>

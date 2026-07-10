@@ -1,36 +1,29 @@
-import { createSupabaseServer } from '@/lib/supabase'
+import { fetchBackendJson } from '@/lib/api/backend'
 import type { TeamWithStats } from '@/lib/types'
-import type { Database } from '@/lib/database.types'
 
-type TeamRow = Database['public']['Tables']['teams']['Row']
-
-export async function loadSelectionCatalog(): Promise<TeamWithStats[]> {
-  const supabase = createSupabaseServer()
-
-  const { data, error } = await supabase
-    .from('teams')
-    .select('*, team_stats(*)')
-    .order('group_name', { ascending: true })
-    .order('name', { ascending: true })
-
-  if (error) {
-    throw new Error(error.message)
-  }
-
-  return (data ?? []) as TeamWithStats[]
+interface SelectionCatalogEntry {
+  id: number
+  nome: string
+  continente: string | null
+  grupo: string | null
+  ranking_fifa: number | null
 }
 
-export async function loadSelectionById(selectionId: number): Promise<TeamRow> {
-  const supabase = createSupabaseServer()
-  const { data, error } = await supabase
-    .from('teams')
-    .select('*')
-    .eq('id', selectionId)
-    .single()
-
-  if (error || !data) {
-    throw new Error(error?.message || `Selection ${selectionId} not found`)
+function catalogEntryToTeam(entry: SelectionCatalogEntry): TeamWithStats {
+  return {
+    id: entry.id,
+    name: entry.nome,
+    country: entry.continente,
+    group_name: entry.grupo,
+    flag_url: null,
+    updated_at: null,
+    team_stats: null,
   }
+}
 
-  return data
+export async function loadSelectionCatalog(): Promise<TeamWithStats[]> {
+  const response = await fetchBackendJson<{ total: number; selecoes: SelectionCatalogEntry[] }>(
+    '/api/selecoes'
+  )
+  return response.selecoes.map(catalogEntryToTeam)
 }

@@ -127,6 +127,7 @@ export interface TicketMarketPick {
   mercado: string
   pick: string
   probabilidade: number
+  odd_justa: number | null
   justificativa: string
 }
 
@@ -134,11 +135,13 @@ export interface TicketSelectionPick {
   mercado: string
   pick: string
   confianca: number
+  odd_justa: number | null
 }
 
 export interface TicketCard {
   risco: 'baixo' | 'medio' | 'alto'
   tipo: 'simples' | 'multipla' | string
+  odd_bilhete: number | null
   selecoes: TicketSelectionPick[]
   justificativa: string
 }
@@ -148,6 +151,7 @@ export interface TicketAnalysis {
   home: string
   away: string
   previsao_placar: string
+  padroes_identificados: string[]
   mercados_favoritos: TicketMarketPick[]
   analise: string
   bilhetes: TicketCard[]
