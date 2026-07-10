@@ -8,7 +8,13 @@ Também expõe processar_partida_futura() para persistir jogos ainda não
 disputados em fato_partida (necessário para o agente de análise).
 """
 
+import sys
 import httpx
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8")
 
 from pipeline import collector
 from pipeline.persisters.evento import upsert_evento

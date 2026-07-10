@@ -15,7 +15,14 @@ Em produção, agendar via cron ou GitHub Actions (ex: todo dia às 06h00):
 """
 
 import datetime
+import sys
 import httpx
+
+# Força UTF-8 no stdout/stderr — necessário no Windows (cp1252 não suporta ✓/✗)
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8")
 
 from pipeline import collector
 from pipeline.orquestrador import processar_partida_futura, processar_time
